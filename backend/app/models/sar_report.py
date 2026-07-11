@@ -27,6 +27,9 @@ class SarReport(Base):
     customer_section: Mapped[str] = mapped_column(Text, nullable=False)
     reason: Mapped[str] = mapped_column(Text, nullable=False)
     evidence: Mapped[list] = mapped_column(JSON, default=list)
+    # Numbered citation catalog ([R#]/[T#] -> rule or transaction evidence) that
+    # the narrative sections reference inline, for auditable AI drafting.
+    citations: Mapped[list] = mapped_column(JSON, default=list)
     timeline: Mapped[list] = mapped_column(JSON, default=list)
     recommendation: Mapped[str] = mapped_column(Text, nullable=False)
     analyst_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

@@ -43,6 +43,10 @@ class TransactionSimulator:
         self._merchants: list[tuple[int, str, bool, str]] = []  # (id, category, hr, name)
         self._account_name: dict[int, str] = {}
         self._merchant_name: dict[int, str] = {}
+        # Seed risk band per customer + how many live suspicious events each has
+        # absorbed — used to keep the majority of customers inside their band.
+        self._cust_band: dict[int, str] = {}
+        self._suspicious_count: dict[int, int] = {}
         self.emitted = 0
 
     # -- lifecycle ---------------------------------------------------------
@@ -82,12 +86,15 @@ class TransactionSimulator:
         if self._accounts:
             return True
         rows = (
-            db.query(Account.id, Account.customer_id, Customer.full_name)
+            db.query(
+                Account.id, Account.customer_id, Customer.full_name, Customer.risk_level
+            )
             .join(Customer, Account.customer_id == Customer.id)
             .all()
         )
-        self._accounts = [(a, c, n) for a, c, n in rows]
-        self._account_name = {a: n for a, c, n in rows}
+        self._accounts = [(a, c, n) for a, c, n, _ in rows]
+        self._account_name = {a: n for a, c, n, _ in rows}
+        self._cust_band = {c: (lvl or "low") for _a, c, _n, lvl in rows}
         mrows = db.query(Merchant.id, Merchant.category, Merchant.is_high_risk, Merchant.name).all()
         self._merchants = [(i, cat, hr, nm) for i, cat, hr, nm in mrows]
         self._merchant_name = {i: nm for i, cat, hr, nm in mrows}
@@ -140,6 +147,43 @@ class TransactionSimulator:
             **kw,
         )
 
+    def _city(self) -> str:
+        """A globally spread city (mostly US, some international / high-risk)."""
+        r = self.rng.random()
+        if r < 0.5:
+            return self.rng.choice(ref.US_CITIES)
+        if r < 0.88:
+            return self.rng.choice(ref.INTL_CITIES)
+        return self.rng.choice(ref.HIGH_RISK_CITIES)
+
+    # Selection weight by seed band + a decay so no single customer absorbs an
+    # unbounded number of live suspicious events. This keeps the majority of
+    # low / medium / high customers inside their original band over time and
+    # makes a 100/100 score rare (items 1-3, 8).
+    _BAND_WEIGHT = {"low": 0.10, "medium": 0.55, "high": 1.8, "critical": 1.0}
+    # Max number of live suspicious events that may rescore (and thus possibly
+    # escalate) a single customer before their band is frozen.
+    ESCALATE_CAP = 3
+
+    def _suspicious_account(self) -> tuple[int, int]:
+        """Pick the subject of a suspicious transaction, biased toward
+        already-risky customers and away from anyone who has already absorbed
+        several live suspicious events."""
+        weights = []
+        for _aid, cust, _n in self._accounts:
+            w = self._BAND_WEIGHT.get(self._cust_band.get(cust, "low"), 0.4)
+            w *= max(0.05, 1.0 - 0.30 * self._suspicious_count.get(cust, 0))
+            weights.append(w)
+        aid, cust, _n = self.rng.choices(self._accounts, weights=weights, k=1)[0]
+        self._suspicious_count[cust] = self._suspicious_count.get(cust, 0) + 1
+        return aid, cust
+
+    def _other_account(self, exclude_aid: int) -> int:
+        aid = exclude_aid
+        while aid == exclude_aid:
+            aid = self.rng.choice(self._accounts)[0]
+        return aid
+
     def _make_normal(self, db) -> tuple[Transaction, int | None]:
         kind = self.rng.random()
         if kind < 0.6:  # card payment at a merchant
@@ -150,7 +194,7 @@ class TransactionSimulator:
                 transaction_type=TransactionType.PAYMENT.value,
                 payment_method=PaymentMethod.CARD.value,
                 amount=round(self.rng.uniform(8, 400), 2),
-                city=self.rng.choice(ref.US_CITIES), is_flagged=False,
+                city=self._city(), is_flagged=False,
             )
             return txn, cust
         # peer transfer
@@ -160,7 +204,7 @@ class TransactionSimulator:
             transaction_type=TransactionType.TRANSFER.value,
             payment_method=PaymentMethod.ACH.value,
             amount=round(self.rng.uniform(50, 1800), 2),
-            city=self.rng.choice(ref.US_CITIES), is_flagged=False,
+            city=self._city(), is_flagged=False,
         )
         return txn, c1
 
@@ -169,17 +213,17 @@ class TransactionSimulator:
             ["structuring", "high_risk_wire", "crypto", "large_transfer"]
         )
         if choice == "structuring":
-            aid, cust, _ = self.rng.choice(self._accounts)
+            aid, cust = self._suspicious_account()
             txn = self._new_txn(
                 receiver_account_id=aid,
                 transaction_type=TransactionType.DEPOSIT.value,
                 payment_method=PaymentMethod.CASH.value,
                 amount=round(self.rng.uniform(9000, 9900), 2),
-                city=self.rng.choice(ref.US_CITIES), is_flagged=True,
+                city=self._city(), is_flagged=True,
             )
             return txn, cust
         if choice == "high_risk_wire":
-            aid, cust, _ = self.rng.choice(self._accounts)
+            aid, cust = self._suspicious_account()
             txn = self._new_txn(
                 receiver_account_id=aid,
                 transaction_type=TransactionType.WIRE.value,
@@ -189,7 +233,7 @@ class TransactionSimulator:
             )
             return txn, cust
         if choice == "crypto":
-            aid, cust, _ = self.rng.choice(self._accounts)
+            aid, cust = self._suspicious_account()
             crypto = [m for m in self._merchants if m[1] == "crypto_exchange"]
             mid, cat, _hr, _nm = self.rng.choice(crypto) if crypto else self.rng.choice(self._merchants)
             txn = self._new_txn(
@@ -197,23 +241,32 @@ class TransactionSimulator:
                 transaction_type=TransactionType.PAYMENT.value,
                 payment_method=PaymentMethod.CRYPTO.value,
                 amount=round(self.rng.uniform(8000, 20000), 2),
-                city=self.rng.choice(ref.US_CITIES), is_flagged=True,
+                city=self._city(), is_flagged=True,
             )
             return txn, cust
         # large_transfer
-        (a1, c1, _), (a2, _c2, _) = self.rng.sample(self._accounts, 2)
+        a1, c1 = self._suspicious_account()
+        a2 = self._other_account(a1)
         txn = self._new_txn(
             sender_account_id=a1, receiver_account_id=a2,
             transaction_type=TransactionType.TRANSFER.value,
             payment_method=PaymentMethod.WIRE.value,
             amount=round(self.rng.uniform(20000, 60000), 2),
-            city=self.rng.choice(ref.US_CITIES), is_flagged=True,
+            city=self._city(), is_flagged=True,
         )
         return txn, c1
 
     # -- alerts + payloads -------------------------------------------------
 
     def _maybe_alert(self, db, customer_id: int, txn: Transaction) -> dict | None:
+        # Keep the overall band distribution stable over long runs: the live
+        # rescore is what moves a customer between bands, so never let it
+        # escalate a seed low-risk customer, and cap how many live suspicious
+        # events can rescore any single customer. The transaction is still
+        # shown in the feed / heatmap regardless (items 1-3, 8).
+        band = self._cust_band.get(customer_id, "low")
+        if band == "low" or self._suspicious_count.get(customer_id, 0) > self.ESCALATE_CAP:
+            return None
         # Avoid alert spam: only if the customer has no currently-open alert.
         existing = (
             db.query(Alert)

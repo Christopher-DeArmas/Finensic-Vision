@@ -67,61 +67,134 @@ def _template_summary(context: dict) -> dict:
     counts = context.get("counts", {})
 
     behaviors = [BEHAVIOR.get(r["code"], r["name"]) for r in rules]
+    total_flagged_amt = sum(t["amount"] for t in flagged)
     top_amount = max((t["amount"] for t in flagged), default=0.0)
+    n_flagged = counts.get("total_flagged", 0)
+    monthly = c.get("expected_monthly_income") or 0.0
+    band = c["risk_level"]
 
-    executive_summary = (
-        f"{c['name']}, a {c['occupation']} based in {c['city']}, {c['country']}, "
-        f"has been assigned a risk score of {c['risk_score']}/100 "
-        f"({c['risk_level']}). The account relationship triggered "
-        f"{len(rules)} AML rule(s) across {counts.get('total_flagged', 0)} "
-        f"flagged transaction(s), consistent with "
-        f"{behaviors[0].lower() if behaviors else 'anomalous activity'}."
-    )
+    # --- Executive summary (varied per subject + risk band) ---
+    lead = {
+        "critical": (
+            f"{c['name']} presents a CRITICAL money-laundering risk and warrants "
+            f"immediate escalation to the financial-crime unit."
+        ),
+        "high": (
+            f"{c['name']} presents a HIGH money-laundering risk and should be "
+            f"advanced to formal investigation."
+        ),
+        "medium": (
+            f"{c['name']}'s account activity exhibits moderate anomalies that "
+            f"warrant enhanced review and continued monitoring."
+        ),
+        "low": (
+            f"{c['name']}'s account activity is largely consistent with the "
+            f"expected customer profile, with only limited indicators noted."
+        ),
+    }.get(band, f"{c['name']} has been reviewed by automated monitoring.")
 
+    parts = [
+        lead,
+        f"The subject is a {c['occupation']} in {c['city']}, {c['country']}, with a "
+        f"declared annual income of ${c['annual_income']:,.0f} and a "
+        f"{c['kyc_status']} KYC status.",
+    ]
+    if rules:
+        rule_phrase = behaviors[0].lower()
+        if len(behaviors) > 1:
+            rule_phrase += f" and {behaviors[1].lower()}"
+        parts.append(
+            f"Transaction monitoring produced a composite risk score of "
+            f"{c['risk_score']}/100, driven by {len(rules)} detection rule(s) "
+            f"across {n_flagged} flagged transaction(s) totalling "
+            f"${total_flagged_amt:,.0f}. The pattern is most consistent with "
+            f"{rule_phrase}."
+        )
+        if monthly and top_amount > monthly * 3 and band in ("high", "critical"):
+            parts.append(
+                f"The largest flagged movement of ${top_amount:,.0f} is "
+                f"approximately {top_amount / max(monthly, 1):.0f}x the subject's "
+                f"expected monthly income — a material inconsistency with the "
+                f"stated economic profile."
+            )
+    else:
+        parts.append(
+            f"No detection rules were triggered and the account scored "
+            f"{c['risk_score']}/100; activity appears commensurate with the profile."
+        )
+    executive_summary = " ".join(parts)
+
+    # --- Key findings ---
     key_findings = [
-        f"{r['name']} ({r['code']}, +{r['points']} pts): {r['reason']}"
-        for r in rules
+        f"{r['name']} ({r['code']}): {r['reason']}" for r in rules
     ]
     if flagged:
         key_findings.append(
-            f"Largest flagged transaction: ${top_amount:,.0f}; "
-            f"{counts.get('total_flagged', 0)} flagged transactions in total."
+            f"{n_flagged} transaction(s) were rule-flagged, totalling "
+            f"${total_flagged_amt:,.0f}; the single largest was ${top_amount:,.0f}."
         )
     if c.get("is_high_risk_jurisdiction"):
         key_findings.append(
-            f"Customer is associated with a high-risk jurisdiction ({c['country']})."
+            f"The customer is domiciled in a high-risk jurisdiction ({c['country']})."
         )
+    if c["kyc_status"] != "verified":
+        key_findings.append(
+            f"KYC verification is {c['kyc_status']}, weakening identity assurance."
+        )
+    if not key_findings:
+        key_findings.append("No adverse findings were identified during review.")
 
-    band = c["risk_level"]
+    # --- Risk assessment ---
     risk_assessment = {
-        "critical": "Risk is CRITICAL. Multiple strong indicators of coordinated "
-        "money laundering are present; immediate escalation is warranted.",
-        "high": "Risk is HIGH. The pattern of activity is materially inconsistent "
-        "with the customer's expected profile and merits formal investigation.",
-        "medium": "Risk is MEDIUM. Activity shows notable anomalies that warrant "
-        "enhanced monitoring and analyst review.",
-        "low": "Risk is LOW. Limited indicators were detected; routine monitoring "
-        "is advised.",
+        "critical": (
+            "The overall risk is assessed as CRITICAL. Several strong, mutually "
+            "reinforcing indicators of coordinated laundering are present, and the "
+            "activity cannot be reconciled with the customer's known profile. "
+            "Immediate escalation and protective action are justified."
+        ),
+        "high": (
+            "The overall risk is assessed as HIGH. The volume and pattern of "
+            "flagged activity are materially inconsistent with the expected "
+            "profile and merit a formal, documented investigation."
+        ),
+        "medium": (
+            "The overall risk is assessed as MEDIUM. The anomalies identified are "
+            "noteworthy but not yet conclusive; enhanced monitoring and analyst "
+            "review are recommended before further escalation."
+        ),
+        "low": (
+            "The overall risk is assessed as LOW. Indicators are limited and "
+            "routine periodic monitoring is considered sufficient at this time."
+        ),
     }.get(band, "Risk assessment unavailable.")
 
-    next_steps = [
-        "Conduct Enhanced Due Diligence (EDD) on the customer and connected parties.",
-        "Review the transaction network for additional linked accounts and mules.",
-    ]
+    # --- Recommended next steps ---
     if band in ("high", "critical"):
-        next_steps.append(
-            "Prepare and file a Suspicious Activity Report (SAR) with the FIU."
-        )
-        next_steps.append(
-            "Consider placing a temporary hold / restriction pending review."
-        )
+        next_steps = [
+            "Initiate Enhanced Due Diligence (EDD) on the subject and all connected parties.",
+            "Map the transaction network for linked accounts, mules, and counterparties.",
+            "Prepare and file a Suspicious Activity Report (SAR) with the relevant FIU.",
+        ]
+        if band == "critical":
+            next_steps.append(
+                "Consider a temporary account restriction or hold pending review."
+            )
+    elif band == "medium":
+        next_steps = [
+            "Apply enhanced transaction monitoring for a 90-day observation window.",
+            "Request supporting documentation for the flagged transactions.",
+            "Re-assess the risk rating if further anomalies emerge.",
+        ]
     else:
-        next_steps.append("Maintain enhanced transaction monitoring for 90 days.")
+        next_steps = [
+            "Maintain standard periodic monitoring.",
+            "No further action is required at this time.",
+        ]
 
     return {
         "executive_summary": executive_summary,
         "key_findings": key_findings,
-        "likely_behaviors": behaviors or ["Anomalous transaction activity"],
+        "likely_behaviors": behaviors or ["No suspicious behavior identified"],
         "risk_assessment": risk_assessment,
         "recommended_next_steps": next_steps,
         "generated_by": "template",

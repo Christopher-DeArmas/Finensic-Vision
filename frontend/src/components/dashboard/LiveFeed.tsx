@@ -11,7 +11,7 @@ import {
 import { Panel } from "@/components/ui/Card";
 import { cn } from "@/lib/cn";
 import { formatCurrency, formatTime } from "@/lib/format";
-import type { LiveFeedState } from "@/hooks/useLiveFeed";
+import { useLiveData } from "@/contexts/LiveDataProvider";
 import type { LiveTransaction } from "@/types/api";
 
 function directionIcon(type: string): LucideIcon {
@@ -41,16 +41,12 @@ function StatusPill({ connected }: { connected: boolean }) {
   );
 }
 
-export function LiveFeed({ feed }: { feed: LiveFeedState }) {
-  const { transactions, connected, flaggedSeen } = feed;
+export function LiveFeed() {
+  const { transactions, connected, flaggedSeen } = useLiveData();
   const scrollRef = useRef<HTMLDivElement>(null);
-  // "stuck" = pinned to the top and showing the live stream. When the user
-  // scrolls down to read, we freeze the list to a snapshot so items don't jump.
   const [stuck, setStuck] = useState(true);
   const [snapshot, setSnapshot] = useState<LiveTransaction[]>([]);
 
-  // Keep the snapshot current while pinned to the top so it's ready to freeze
-  // the moment the user scrolls down to read.
   useEffect(() => {
     if (stuck) setSnapshot(transactions);
   }, [stuck, transactions]);
@@ -81,6 +77,7 @@ export function LiveFeed({ feed }: { feed: LiveFeedState }) {
     <Panel
       title="Live Transaction Feed"
       icon={<Radio size={16} />}
+      className="h-[440px]"
       action={
         <div className="flex items-center gap-2">
           <span className="text-[11px] text-white/35">{flaggedSeen} flagged</span>
@@ -89,12 +86,8 @@ export function LiveFeed({ feed }: { feed: LiveFeedState }) {
       }
       bodyClassName="p-0"
     >
-      <div className="relative">
-        <div
-          ref={scrollRef}
-          onScroll={onScroll}
-          className="h-[300px] overflow-y-auto p-2"
-        >
+      <div className="relative flex h-full flex-col">
+        <div ref={scrollRef} onScroll={onScroll} className="min-h-0 flex-1 overflow-y-auto p-2">
           {displayed.length === 0 ? (
             <div className="grid h-full place-items-center text-sm text-white/30">
               Waiting for transactions…
@@ -114,8 +107,7 @@ export function LiveFeed({ feed }: { feed: LiveFeedState }) {
                       transition={{ duration: 0.25 }}
                       className={cn(
                         "flex items-center gap-3 rounded-lg px-2.5 py-2",
-                        t.is_flagged &&
-                          "animate-flash border-l-2 border-risk-critical",
+                        t.is_flagged && "animate-flash border-l-2 border-risk-critical",
                       )}
                     >
                       <span
@@ -133,8 +125,7 @@ export function LiveFeed({ feed }: { feed: LiveFeedState }) {
                           {counterparty(t)}
                         </div>
                         <div className="truncate text-[11px] text-white/35">
-                          {t.transaction_type} · {t.city} ·{" "}
-                          {formatTime(t.timestamp)}
+                          {t.transaction_type} · {t.city} · {formatTime(t.timestamp)}
                         </div>
                       </div>
                       <span
@@ -153,7 +144,6 @@ export function LiveFeed({ feed }: { feed: LiveFeedState }) {
           )}
         </div>
 
-        {/* Jump-to-live pill appears when paused (scrolled down) with new items. */}
         <AnimatePresence>
           {!stuck && newCount > 0 && (
             <motion.button

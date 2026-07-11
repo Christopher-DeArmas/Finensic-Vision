@@ -31,3 +31,4 @@ class CaseRead(BaseModel):
     opened_at: datetime
     closed_at: datetime | None
     transaction_count: int = 0
+    has_sar: bool = False

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import {
   ComposableMap,
   Geographies,
@@ -11,7 +11,7 @@ import worldTopo from "world-atlas/countries-110m.json";
 import { Panel } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { formatCurrency } from "@/lib/format";
-import type { LiveTransaction } from "@/types/api";
+import { useLiveData, type HeatPt } from "@/contexts/LiveDataProvider";
 
 const geography = worldTopo as object;
 const MIN_ZOOM = 1;
@@ -20,58 +20,26 @@ const INITIAL: { coordinates: [number, number]; zoom: number } = {
   coordinates: [5, 20],
   zoom: 1,
 };
-const MAX_POINTS = 400;
 
 interface Position {
   coordinates: [number, number];
   zoom: number;
 }
-interface Pt {
-  id: string;
-  latitude: number;
-  longitude: number;
-  amount: number;
-  country: string;
-  city: string;
-  type: string;
-  is_flagged: boolean;
-  label: string | null;
-}
+type Pt = HeatPt;
 interface Hover {
   p: Pt;
   x: number;
   y: number;
 }
 
-export function FraudHeatmap({ livePoints }: { livePoints: LiveTransaction[] }) {
+export function FraudHeatmap() {
+  const { heatPoints } = useLiveData();
   const [pos, setPos] = useState<Position>(INITIAL);
-  const [points, setPoints] = useState<Pt[]>([]);
   const [hover, setHover] = useState<Hover | null>(null);
-  const seen = useRef<Set<string>>(new Set());
   const wrapRef = useRef<HTMLDivElement>(null);
   const k = pos.zoom;
 
-  // Accumulate streamed transactions onto the map, starting from zero (items 1, 5).
-  useEffect(() => {
-    const fresh: Pt[] = [];
-    for (const t of livePoints) {
-      if (seen.current.has(t.external_id)) continue;
-      seen.current.add(t.external_id);
-      fresh.push({
-        id: t.external_id,
-        latitude: t.latitude,
-        longitude: t.longitude,
-        amount: t.amount,
-        country: t.country,
-        city: t.city,
-        type: t.transaction_type,
-        is_flagged: t.is_flagged,
-        label: t.merchant_name || t.sender_name || t.receiver_name || null,
-      });
-    }
-    if (fresh.length) setPoints((prev) => [...fresh, ...prev].slice(0, MAX_POINTS));
-  }, [livePoints]);
-
+  const points = heatPoints;
   const flagged = points.filter((p) => p.is_flagged);
   const normal = points.filter((p) => !p.is_flagged);
 

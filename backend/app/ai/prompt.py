@@ -14,7 +14,10 @@ SUMMARY_SYSTEM = (
 SAR_SYSTEM = (
     "You are an AML compliance officer drafting a Suspicious Activity Report "
     "(SAR) narrative for filing. Write formal, factual, regulator-ready prose "
-    "grounded strictly in the evidence provided. Respond ONLY with valid JSON."
+    "grounded strictly in the evidence provided. Every factual claim must be "
+    "traceable to a numbered evidence citation ([R#] for a detection rule, [T#] "
+    "for a transaction) supplied in the evidence catalog. Never assert a fact "
+    "you cannot cite. Respond ONLY with valid JSON."
 )
 
 
@@ -37,16 +40,29 @@ def summary_messages(context: dict) -> list[dict]:
     ]
 
 
-def sar_messages(context: dict, summary: dict) -> list[dict]:
+def sar_messages(context: dict, summary: dict, citations: list[dict]) -> list[dict]:
     schema = {
-        "summary": "string (narrative overview)",
-        "reason": "string (why the activity is suspicious)",
-        "recommendation": "string (recommended action)",
+        "summary": "string (narrative overview, with inline [R#]/[T#] citations)",
+        "reason": "string (why the activity is suspicious, with inline citations)",
+        "recommendation": "string (recommended action, with inline citations)",
     }
+    catalog = [
+        {"id": c["id"], "kind": c["kind"], "evidence": c["label"], "detail": c["detail"]}
+        for c in citations
+    ]
+    valid_ids = [c["id"] for c in citations]
     user = (
         "Draft the narrative sections of a SAR for the following case.\n\n"
         f"CASE CONTEXT (JSON):\n{json.dumps(context, indent=2, default=str)}\n\n"
         f"PRIOR ANALYSIS (JSON):\n{json.dumps(summary, indent=2, default=str)}\n\n"
+        "EVIDENCE CATALOG — cite these by id inline using square brackets, e.g. "
+        "\"...structured cash deposits [R1] totalling $45,000 [T2]...\":\n"
+        f"{json.dumps(catalog, indent=2, default=str)}\n\n"
+        "CITATION RULES (mandatory):\n"
+        f"- Only use ids from this exact list: {valid_ids}.\n"
+        "- Every material factual claim MUST end with at least one [id] citation.\n"
+        "- Do NOT invent ids, facts, figures, or evidence not in the catalog.\n"
+        "- Each of the three sections must contain at least one valid citation.\n\n"
         f"Return JSON with exactly these keys:\n{json.dumps(schema, indent=2)}"
     )
     return [

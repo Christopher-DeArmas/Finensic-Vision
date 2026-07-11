@@ -28,6 +28,7 @@ class DashboardStats(BaseModel):
     todays_transactions: int
     open_cases: int
     critical_cases: int
+    closed_cases: int
     open_alerts: int
     risk_distribution: dict[str, int]
     top_risk_customers: list[CustomerSummary]

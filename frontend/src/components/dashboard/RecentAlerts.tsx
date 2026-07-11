@@ -7,10 +7,10 @@ import { relativeTime } from "@/lib/format";
 import type { DashboardStats } from "@/types/api";
 
 export function RecentAlerts({ stats }: { stats: DashboardStats }) {
-  const alerts = stats.recent_alerts.slice(0, 6);
+  const alerts = stats.recent_alerts.slice(0, 12);
 
   return (
-    <Panel title="Recent Alerts" icon={<Bell size={16} />} bodyClassName="p-2 h-[300px] overflow-y-auto">
+    <Panel title="Recent Alerts" icon={<Bell size={16} />} className="h-[440px]" bodyClassName="p-2 overflow-y-auto">
       {alerts.length === 0 ? (
         <p className="p-4 text-sm text-white/40">No alerts yet.</p>
       ) : (

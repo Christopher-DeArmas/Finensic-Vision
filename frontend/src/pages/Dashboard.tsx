@@ -1,7 +1,5 @@
-import { useEffect, useRef } from "react";
 import { Loader2, TriangleAlert } from "lucide-react";
 import { useDashboard } from "@/hooks/useDashboard";
-import { useLiveFeed } from "@/hooks/useLiveFeed";
 import { KpiCards } from "@/components/dashboard/KpiCards";
 import { FraudHeatmap } from "@/components/dashboard/FraudHeatmap";
 import { RiskDistribution } from "@/components/dashboard/RiskDistribution";
@@ -11,22 +9,6 @@ import { RecentAlerts } from "@/components/dashboard/RecentAlerts";
 
 export function Dashboard() {
   const { stats, loading, error } = useDashboard();
-  const feed = useLiveFeed();
-
-  // Live delta for "today's transactions": reset the baseline every time the
-  // polled stats refresh (which already include the persisted live txns), then
-  // add anything streamed since — so the KPI ticks up without double counting.
-  const baseline = useRef(0);
-  const displayRef = useRef(0);
-  useEffect(() => {
-    baseline.current = feed.totalSeen;
-  }, [stats]);
-  const target = stats
-    ? stats.todays_transactions + Math.max(0, feed.totalSeen - baseline.current)
-    : 0;
-  // Only ever tick up — never let the live count flicker downward (item 8).
-  if (target > displayRef.current) displayRef.current = target;
-  const liveToday = displayRef.current;
 
   if (loading && !stats) {
     return (
@@ -48,10 +30,6 @@ export function Dashboard() {
             Couldn&apos;t reach the API
           </div>
           <p className="text-xs text-white/40">{error}</p>
-          <p className="text-xs text-white/40">
-            Make sure the backend is running on{" "}
-            <span className="text-gold-400">http://localhost:8000</span>.
-          </p>
         </div>
       </div>
     );
@@ -61,11 +39,11 @@ export function Dashboard() {
 
   return (
     <div className="space-y-4">
-      <KpiCards stats={stats} liveToday={liveToday} />
+      <KpiCards stats={stats} />
 
       <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-12">
         <div className="lg:col-span-8">
-          <FraudHeatmap livePoints={feed.transactions} />
+          <FraudHeatmap />
         </div>
         <div className="lg:col-span-4">
           <RiskDistribution stats={stats} />
@@ -73,7 +51,7 @@ export function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <LiveFeed feed={feed} />
+        <LiveFeed />
         <TopRiskCustomers stats={stats} />
         <RecentAlerts stats={stats} />
       </div>

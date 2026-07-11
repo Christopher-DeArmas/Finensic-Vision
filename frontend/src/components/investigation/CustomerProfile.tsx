@@ -1,8 +1,8 @@
-import { Landmark, MapPin, ShieldAlert } from "lucide-react";
+import { Bell, Landmark, MapPin, ShieldAlert } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { RiskBadge, RISK_COLORS } from "@/components/ui/RiskBadge";
 import { formatCurrency } from "@/lib/format";
-import type { CustomerDetail } from "@/types/api";
+import type { AlertRead, CustomerDetail, Severity } from "@/types/api";
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
@@ -13,7 +13,15 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function CustomerProfile({ customer }: { customer: CustomerDetail }) {
+export function CustomerProfile({
+  customer,
+  alerts = [],
+  onAlertClick,
+}: {
+  customer: CustomerDetail;
+  alerts?: AlertRead[];
+  onAlertClick?: (a: AlertRead) => void;
+}) {
   const score = customer.risk_score ?? 0;
   const color = RISK_COLORS[customer.risk_level];
 
@@ -34,9 +42,7 @@ export function CustomerProfile({ customer }: { customer: CustomerDetail }) {
           <div className="truncate text-base font-semibold text-white">
             {customer.full_name}
           </div>
-          <div className="truncate text-xs text-white/45">
-            {customer.occupation}
-          </div>
+          <div className="truncate text-xs text-white/45">{customer.occupation}</div>
           <div className="mt-1 flex items-center gap-1.5 text-xs text-white/45">
             <MapPin size={12} /> {customer.city}, {customer.country}
           </div>
@@ -53,6 +59,36 @@ export function CustomerProfile({ customer }: { customer: CustomerDetail }) {
         </div>
         <RiskBadge level={customer.risk_level} />
       </div>
+
+      {/* Alerts — click one to review / change status (item 4) */}
+      {alerts.length > 0 && (
+        <div>
+          <div className="stat-label mb-2 flex items-center gap-1.5">
+            <Bell size={12} /> Alerts ({alerts.length})
+          </div>
+          <ul className="space-y-1.5">
+            {alerts.map((a) => (
+              <li key={a.id}>
+                <button
+                  onClick={() => onAlertClick?.(a)}
+                  className="flex w-full items-center gap-2 rounded-lg border border-white/5 bg-ink-900/40 px-3 py-2 text-left transition-colors hover:border-gold-500/30 hover:bg-white/5"
+                >
+                  <span
+                    className="h-2 w-2 shrink-0 rounded-full"
+                    style={{ backgroundColor: RISK_COLORS[a.severity as Severity] }}
+                  />
+                  <span className="min-w-0 flex-1 truncate text-xs text-white/80">
+                    {a.title}
+                  </span>
+                  <Badge className="border-white/10 bg-white/5 text-white/45 capitalize">
+                    {a.status.replace(/_/g, " ")}
+                  </Badge>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-1.5">
         {customer.is_high_risk_jurisdiction && (
@@ -71,10 +107,7 @@ export function CustomerProfile({ customer }: { customer: CustomerDetail }) {
       </div>
 
       <div className="divide-y divide-white/5 border-y border-white/5">
-        <Row
-          label="Annual income"
-          value={formatCurrency(customer.annual_income)}
-        />
+        <Row label="Annual income" value={formatCurrency(customer.annual_income)} />
         <Row
           label="Expected / mo"
           value={formatCurrency(customer.expected_monthly_income)}
@@ -94,9 +127,7 @@ export function CustomerProfile({ customer }: { customer: CustomerDetail }) {
             >
               <span className="capitalize text-white/70">
                 {a.account_type}
-                <span className="ml-2 text-white/30">
-                  ••{a.account_number.slice(-4)}
-                </span>
+                <span className="ml-2 text-white/30">••{a.account_number.slice(-4)}</span>
                 {a.is_dormant && (
                   <span className="ml-2 text-[10px] uppercase text-risk-high">
                     dormant

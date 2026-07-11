@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   Bell,
+  CheckCircle2,
+  FolderOpen,
   LayoutDashboard,
   Network,
   ShieldCheck,
@@ -10,12 +12,15 @@ import {
 import { cn } from "@/lib/cn";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { SearchBar } from "@/components/layout/SearchBar";
+import { LiveDataProvider } from "@/contexts/LiveDataProvider";
 
 const NAV = [
   { label: "Dashboard", icon: LayoutDashboard, to: "/", enabled: true },
   { label: "Investigations", icon: Network, to: "/investigations", enabled: true },
   { label: "Customers", icon: Users, to: "/customers", enabled: true },
   { label: "Alerts", icon: Bell, to: "/alerts", enabled: true },
+  { label: "Open Cases", icon: FolderOpen, to: "/cases/open", enabled: true },
+  { label: "Closed Cases", icon: CheckCircle2, to: "/cases/closed", enabled: true },
 ];
 
 function Clock() {
@@ -34,6 +39,7 @@ function Clock() {
 export function AppShell() {
   const location = useLocation();
   return (
+    <LiveDataProvider>
     <div className="flex min-h-screen">
       {/* Sidebar */}
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-white/5 bg-ink-900/60 px-4 py-6 backdrop-blur-sm md:flex">
@@ -123,5 +129,6 @@ export function AppShell() {
         </main>
       </div>
     </div>
+    </LiveDataProvider>
   );
 }

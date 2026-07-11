@@ -61,6 +61,10 @@ def counts(db: Session) -> dict:
         .filter(Case.priority == "critical")
         .scalar()
         or 0,
+        "closed_cases": db.query(func.count(Case.id))
+        .filter(Case.status == "closed")
+        .scalar()
+        or 0,
         "open_alerts": db.query(func.count(Alert.id))
         .filter(Alert.status == "open")
         .scalar()
@@ -82,13 +86,14 @@ def risk_distribution(db: Session) -> dict[str, int]:
 
 
 def top_regions(db: Session) -> list[RegionStat]:
+    day_ago = datetime.utcnow() - timedelta(days=1)
     rows = (
         db.query(
             Transaction.country,
             func.count(Transaction.id),
             func.coalesce(func.sum(Transaction.amount), 0.0),
         )
-        .filter(Transaction.is_flagged.is_(True))
+        .filter(Transaction.is_flagged.is_(True), Transaction.timestamp >= day_ago)
         .group_by(Transaction.country)
         .all()
     )
@@ -101,7 +106,7 @@ def top_regions(db: Session) -> list[RegionStat]:
     return [
         RegionStat(region=r, count=int(v[0]), amount=round(v[1], 2))
         for r, v in sorted(agg.items(), key=lambda kv: kv[1][0], reverse=True)
-    ]
+    ][:5]
 
 
 def heatmap(db: Session, limit: int = 400) -> list[HeatPoint]:

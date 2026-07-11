@@ -19,9 +19,11 @@ interface Selected {
 export function TransactionGraph({
   graph,
   highlightTxnId,
+  onEdgeHover,
 }: {
   graph: GraphData;
   highlightTxnId?: number | null;
+  onEdgeHover?: (txnId: number | null) => void;
 }) {
   const [view, setView] = useState({ k: 1, tx: 0, ty: 0 });
   const [selected, setSelected] = useState<Selected | null>(null);
@@ -52,8 +54,10 @@ export function TransactionGraph({
 
   const highlightedEdgeId = useMemo(() => {
     if (highlightTxnId == null) return null;
-    const e = graph.edges.find((ed) =>
-      (ed.transaction_ids ?? []).includes(highlightTxnId),
+    // Only ever highlight flagged/suspicious transfers — irrelevant ordinary
+    // connections should never light up.
+    const e = graph.edges.find(
+      (ed) => ed.suspicious && (ed.transaction_ids ?? []).includes(highlightTxnId),
     );
     return e?.id ?? null;
   }, [graph, highlightTxnId]);
@@ -124,12 +128,14 @@ export function TransactionGraph({
             const mx = (s.x + t.x) / 2;
             const my = (s.y + t.y) / 2;
             const hot = e.id === highlightedEdgeId;
+            const txnId = e.transaction_ids?.[0] ?? null;
             return (
               <g key={e.id}>
                 {hot && (
                   <line
                     x1={s.x} y1={s.y} x2={t.x} y2={t.y}
-                    stroke="#d4af37" strokeOpacity={0.4} strokeWidth={7}
+                    stroke={e.suspicious ? "#ef4444" : "#d4af37"}
+                    strokeOpacity={0.45} strokeWidth={8}
                     strokeLinecap="round"
                   />
                 )}
@@ -138,26 +144,34 @@ export function TransactionGraph({
                   y1={s.y}
                   x2={t.x}
                   y2={t.y}
-                  stroke={hot ? "#f0d67a" : e.suspicious ? "#ef4444" : "rgba(212,175,55,0.32)"}
-                  strokeWidth={hot ? 2.6 : e.suspicious ? 2 : 1.2}
+                  stroke={
+                    hot
+                      ? e.suspicious
+                        ? "#ff8080"
+                        : "#f0d67a"
+                      : e.suspicious
+                        ? "#ef4444"
+                        : "rgba(212,175,55,0.32)"
+                  }
+                  strokeWidth={hot ? 2.8 : e.suspicious ? 2 : 1.2}
                   markerEnd={`url(#${e.suspicious ? "arrow-red" : "arrow-gold"})`}
                   strokeDasharray={e.suspicious ? "6 4" : undefined}
-                  className={e.suspicious ? "cursor-pointer" : undefined}
-                  onClick={e.suspicious ? (ev) => onEdgeClick(ev, e) : undefined}
+                  className="pointer-events-none"
                 >
                   {e.suspicious && (
                     <animate attributeName="stroke-dashoffset" from="20" to="0" dur="0.8s" repeatCount="indefinite" />
                   )}
                 </line>
-                {/* Wider invisible hit area for easier clicking */}
-                {e.suspicious && (
-                  <line
-                    x1={s.x} y1={s.y} x2={t.x} y2={t.y}
-                    stroke="transparent" strokeWidth={12}
-                    className="cursor-pointer"
-                    onClick={(ev) => onEdgeClick(ev, e)}
-                  />
-                )}
+                {/* Wide invisible hit area: hover highlights the matching
+                    timeline event; suspicious edges also open a popup on click. */}
+                <line
+                  x1={s.x} y1={s.y} x2={t.x} y2={t.y}
+                  stroke="transparent" strokeWidth={14}
+                  className={e.suspicious ? "cursor-pointer" : "cursor-default"}
+                  onMouseEnter={e.suspicious ? () => onEdgeHover?.(txnId) : undefined}
+                  onMouseLeave={e.suspicious ? () => onEdgeHover?.(null) : undefined}
+                  onClick={e.suspicious ? (ev) => onEdgeClick(ev, e) : undefined}
+                />
                 {e.suspicious && (
                   <text x={mx} y={my - 3} fill="#ef4444" fontSize={11} textAnchor="middle" className="pointer-events-none">
                     {formatCurrency(e.amount)}
@@ -241,6 +255,7 @@ export function TransactionGraph({
           <span className="inline-block h-2 w-2 rounded-full" style={{ background: "#ef4444" }} />
           click a red arrow for details
         </span>
+        <span>hover to trace on timeline</span>
         <span>drag to pan</span>
       </div>
     </div>

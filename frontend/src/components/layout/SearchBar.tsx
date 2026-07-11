@@ -62,7 +62,7 @@ export function SearchBar() {
         value={q}
         onChange={(e) => setQ(e.target.value)}
         onFocus={() => results && setOpen(true)}
-        placeholder="Search customers, accounts…"
+        placeholder="Search customers"
         className="w-full rounded-lg border border-white/10 bg-ink-850/80 py-1.5 pl-9 pr-8 text-sm text-white/80 outline-none transition-colors focus:border-gold-500/40"
       />
       {q && (

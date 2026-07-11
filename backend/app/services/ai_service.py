@@ -166,12 +166,12 @@ class AIService:
         existing.customer_section = sections["customer_section"]
         existing.reason = sections["reason"]
         existing.evidence = sections["evidence"]
+        existing.citations = sections["citations"]
         existing.timeline = sections["timeline"]
         existing.recommendation = sections["recommendation"]
         existing.analyst_notes = case.analyst_notes
         existing.generated_at = datetime.utcnow()
 
-        case.status = "filed_sar"
         db.commit()
         db.refresh(existing)
         return existing

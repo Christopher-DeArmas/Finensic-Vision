@@ -43,6 +43,9 @@ export interface AlertRead {
   status: string;
   created_at: string;
   transaction_count: number;
+  triage_score: number;
+  rank: number;
+  triage_factors: Record<string, number>;
 }
 
 export interface DashboardStats {
@@ -52,6 +55,7 @@ export interface DashboardStats {
   todays_transactions: number;
   open_cases: number;
   critical_cases: number;
+  closed_cases: number;
   open_alerts: number;
   risk_distribution: Record<RiskLevel, number>;
   top_risk_customers: CustomerSummary[];
@@ -184,6 +188,7 @@ export interface CaseRead {
   opened_at: string;
   closed_at: string | null;
   transaction_count: number;
+  has_sar: boolean;
 }
 
 export interface InvestigationBundle {
@@ -214,6 +219,18 @@ export interface AISummary {
   model: string | null;
 }
 
+export interface SarCitation {
+  id: string;
+  kind: "rule" | "transaction";
+  ref: string | null;
+  label: string;
+  detail: string;
+  points?: number | null;
+  severity?: string | null;
+  amount?: number | null;
+  timestamp?: string | null;
+}
+
 export interface SarReportRead {
   id: number;
   case_id: number;
@@ -222,6 +239,7 @@ export interface SarReportRead {
   customer_section: string;
   reason: string;
   evidence: unknown[];
+  citations: SarCitation[];
   timeline: unknown[];
   recommendation: string;
   analyst_notes: string | null;

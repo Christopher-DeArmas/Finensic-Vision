@@ -62,6 +62,64 @@ def create_all() -> None:
     from app import models  # noqa: F401  (ensures models are registered)
 
     Base.metadata.create_all(bind=engine)
+    run_light_migrations()
+
+
+_JSON_LIST_COLUMNS = {
+    "citations",
+    "evidence",
+    "timeline",
+    "triggered_rules",
+    "breakdown",
+}
+
+
+def run_light_migrations() -> None:
+    """Additively bring an existing SQLite DB up to the current model schema.
+
+    ``create_all`` only creates missing *tables*, never missing *columns*, so a
+    demo database seeded before a new column was introduced (e.g. the SAR
+    ``citations`` column) keeps 500-ing on any query that touches that table.
+    This adds any column present on a model but missing from the database, so
+    the app self-heals without a reseed. SQLite-only; a no-op elsewhere.
+    """
+    if not _is_sqlite:
+        return
+    from sqlalchemy import inspect, text
+    from sqlalchemy.dialects.sqlite import dialect as sqlite_dialect
+
+    from app import models  # noqa: F401  (ensure models are registered)
+
+    insp = inspect(engine)
+    existing_tables = set(insp.get_table_names())
+    dial = sqlite_dialect()
+
+    with engine.begin() as conn:
+        for table in Base.metadata.tables.values():
+            if table.name not in existing_tables:
+                continue
+            have = {c["name"] for c in insp.get_columns(table.name)}
+            for col in table.columns:
+                if col.name in have:
+                    continue
+                coltype = col.type.compile(dialect=dial)
+                is_json_list = (
+                    col.name in _JSON_LIST_COLUMNS or "JSON" in coltype.upper()
+                )
+                default = " DEFAULT '[]'" if is_json_list else ""
+                conn.execute(
+                    text(
+                        f'ALTER TABLE "{table.name}" '
+                        f'ADD COLUMN "{col.name}" {coltype}{default}'
+                    )
+                )
+                if is_json_list:
+                    conn.execute(
+                        text(
+                            f'UPDATE "{table.name}" SET "{col.name}" = \'[]\' '
+                            f'WHERE "{col.name}" IS NULL'
+                        )
+                    )
 
 
 def drop_all() -> None:

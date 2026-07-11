@@ -25,6 +25,7 @@ class SarReportRead(BaseModel):
     customer_section: str
     reason: str
     evidence: list
+    citations: list = []
     timeline: list
     recommendation: str
     analyst_notes: str | None

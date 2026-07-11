@@ -19,6 +19,10 @@ class AlertRead(BaseModel):
     status: str
     created_at: datetime
     transaction_count: int = 0
+    # Triage ranking (composite priority so analysts work highest-risk first).
+    triage_score: float = 0.0
+    rank: int = 0
+    triage_factors: dict = {}
 
 
 class AlertUpdate(BaseModel):

@@ -1,16 +1,148 @@
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
+  ChevronDown,
   Download,
   FileText,
+  Landmark,
   Loader2,
+  Receipt,
   RefreshCw,
+  ShieldCheck,
   Sparkles,
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { RISK_COLORS } from "@/components/ui/RiskBadge";
+import { cn } from "@/lib/cn";
 import { api } from "@/services/api";
-import type { AISummary, CustomerDetail, SarReportRead, Severity } from "@/types/api";
+import type {
+  AISummary,
+  CustomerDetail,
+  SarCitation,
+  SarReportRead,
+  Severity,
+} from "@/types/api";
+
+const MARKER_RE = /(\[[RT]\d+\])/g;
+
+/** Render narrative text with inline [R#]/[T#] markers as clickable chips. */
+function Cited({
+  text,
+  ids,
+  active,
+  onCite,
+}: {
+  text: string;
+  ids: Set<string>;
+  active: string | null;
+  onCite: (id: string) => void;
+}) {
+  const parts = text.split(MARKER_RE);
+  return (
+    <p className="text-xs leading-relaxed text-white/75">
+      {parts.map((part, i) => {
+        const m = /^\[([RT]\d+)\]$/.exec(part);
+        if (m && ids.has(m[1])) {
+          const id = m[1];
+          return (
+            <button
+              key={i}
+              onClick={() => onCite(id)}
+              className={cn(
+                "mx-0.5 inline-flex -translate-y-px items-center rounded px-1 text-[10px] font-bold align-baseline transition-colors",
+                id.startsWith("R")
+                  ? "bg-brand-500/20 text-brand-300 hover:bg-brand-500/35"
+                  : "bg-gold-500/20 text-gold-300 hover:bg-gold-500/35",
+                active === id && "ring-1 ring-white/60",
+              )}
+            >
+              {id}
+            </button>
+          );
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </p>
+  );
+}
+
+function SarNarrative({ sar }: { sar: SarReportRead }) {
+  const citations = sar.citations ?? [];
+  const ids = useMemo(() => new Set(citations.map((c) => c.id)), [citations]);
+  const [active, setActive] = useState<string | null>(null);
+  const rowRefs = useRef<Record<string, HTMLLIElement | null>>({});
+
+  const onCite = (id: string) => {
+    setActive(id);
+    rowRefs.current[id]?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    window.setTimeout(() => setActive((a) => (a === id ? null : a)), 1600);
+  };
+
+  const sections: [string, string][] = [
+    ["Summary", sar.summary],
+    ["Reason for Suspicion", sar.reason],
+    ["Recommendation", sar.recommendation],
+  ];
+
+  return (
+    <div className="mt-3 grid gap-4 rounded-xl border border-white/5 bg-ink-900/40 p-4 lg:grid-cols-5">
+      <div className="space-y-3 lg:col-span-3">
+        {sections.map(([title, body]) => (
+          <div key={title}>
+            <div className="stat-label mb-1">{title}</div>
+            <Cited text={body} ids={ids} active={active} onCite={onCite} />
+          </div>
+        ))}
+      </div>
+      <div className="lg:col-span-2">
+        <div className="mb-1.5 flex items-center gap-1.5 text-white/70">
+          <ShieldCheck size={13} className="text-brand-400" />
+          <span className="stat-label !mb-0">
+            Citation Trail · {citations.length}
+          </span>
+        </div>
+        <ul className="max-h-72 space-y-1.5 overflow-y-auto pr-1">
+          {citations.map((c: SarCitation) => {
+            const isRule = c.kind === "rule";
+            const Icon = isRule ? Landmark : Receipt;
+            return (
+              <li
+                key={c.id}
+                ref={(el) => (rowRefs.current[c.id] = el)}
+                className={cn(
+                  "flex gap-2 rounded-lg border p-2 transition-colors",
+                  active === c.id
+                    ? "border-white/40 bg-white/10"
+                    : "border-white/5 bg-ink-900/50",
+                )}
+              >
+                <span
+                  className={cn(
+                    "mt-0.5 grid h-5 shrink-0 place-items-center rounded px-1 text-[10px] font-bold",
+                    isRule
+                      ? "bg-brand-500/20 text-brand-300"
+                      : "bg-gold-500/20 text-gold-300",
+                  )}
+                >
+                  {c.id}
+                </span>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 text-[11px] font-semibold text-white/80">
+                    <Icon size={11} className="shrink-0 text-white/40" />
+                    <span className="truncate">{c.label}</span>
+                  </div>
+                  <p className="mt-0.5 text-[11px] leading-snug text-white/50">
+                    {c.detail}
+                  </p>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </div>
+  );
+}
 
 function List({ items }: { items: string[] }) {
   return (
@@ -48,6 +180,20 @@ export function RiskPanel({
   const [sar, setSar] = useState<SarReportRead | null>(null);
   const [busy, setBusy] = useState<"summary" | "sar" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showNarrative, setShowNarrative] = useState(false);
+
+  // If a SAR already exists for this case, show Download instead of Generate.
+  useEffect(() => {
+    if (!caseId) return;
+    let active = true;
+    api
+      .getSar(caseId)
+      .then((s) => active && setSar(s))
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [caseId]);
 
   const runSummary = async () => {
     if (!caseId) return;
@@ -173,15 +319,32 @@ export function RiskPanel({
             {sar ? (
               <div className="mt-2 space-y-2">
                 <div className="flex items-center gap-1.5 text-xs text-risk-low">
-                  <Check size={13} /> Generated · {sar.reference}
+                  <Check size={13} /> Generated · {sar.reference} ·{" "}
+                  {sar.citations?.length ?? 0} citations
                 </div>
-                <a
-                  href={api.sarExportUrl(caseId)}
-                  download
-                  className="flex w-full max-w-xs items-center justify-center gap-2 rounded-lg border border-gold-500/40 bg-gold-500/10 py-2 text-xs font-medium text-gold-300 transition-colors hover:bg-gold-500/20"
-                >
-                  <Download size={14} /> Download SAR (PDF)
-                </a>
+                <div className="flex flex-wrap items-center gap-2">
+                  <a
+                    href={api.sarExportUrl(caseId)}
+                    download
+                    className="flex items-center justify-center gap-2 rounded-lg border border-gold-500/40 bg-gold-500/10 px-3 py-2 text-xs font-medium text-gold-300 transition-colors hover:bg-gold-500/20"
+                  >
+                    <Download size={14} /> Download SAR (PDF)
+                  </a>
+                  <button
+                    onClick={() => setShowNarrative((v) => !v)}
+                    className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-white/70 transition-colors hover:bg-white/10"
+                  >
+                    <ShieldCheck size={14} className="text-brand-400" />
+                    {showNarrative ? "Hide" : "View"} narrative &amp; citations
+                    <ChevronDown
+                      size={13}
+                      className={cn(
+                        "transition-transform",
+                        showNarrative && "rotate-180",
+                      )}
+                    />
+                  </button>
+                </div>
               </div>
             ) : (
               <button
@@ -239,6 +402,9 @@ export function RiskPanel({
           )}
         </div>
       </div>
+
+      {/* Citation-linked SAR narrative — each claim traces to numbered evidence */}
+      {caseId && sar && showNarrative && <SarNarrative sar={sar} />}
     </div>
   );
 }

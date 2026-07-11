@@ -71,6 +71,7 @@ export interface AlertQuery {
   severity?: string;
   status?: string;
   rule?: string;
+  sort?: string;
 }
 
 export const api = {
@@ -95,4 +96,10 @@ export const api = {
   generateSar: (caseId: number) =>
     postJSON<SarReportRead>(`/api/cases/${caseId}/sar`, {}),
   sarExportUrl: (caseId: number) => `${BASE}/api/cases/${caseId}/sar/export`,
+  cases: () => getJSON<Page<CaseRead>>("/api/cases?page_size=200"),
+  case: (id: number) => getJSON<CaseRead>(`/api/cases/${id}`),
+  updateCase: (id: number, body: { status?: string; analyst_notes?: string }) =>
+    patchJSON<CaseRead>(`/api/cases/${id}`, body),
+  getSar: (caseId: number) =>
+    getJSON<SarReportRead>(`/api/cases/${caseId}/sar`),
 };

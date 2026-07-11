@@ -21,6 +21,7 @@ def list_alerts(
     severity: str | None = None,
     status: str | None = None,
     rule: str | None = None,
+    sort: str = "triage",
     db: Session = Depends(get_db),
 ):
     items, total = repo.list_alerts(
@@ -30,6 +31,7 @@ def list_alerts(
         severity=severity,
         status=status,
         rule=rule,
+        sort=sort,
     )
     return Page.build(items, total, pg.page, pg.page_size)
 

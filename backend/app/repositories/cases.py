@@ -20,6 +20,7 @@ def _to_read(db: Session, cases: list[Case]) -> list[CaseRead]:
         r = CaseRead.model_validate(c)
         r.customer_name = names.get(c.customer_id)
         r.transaction_count = len(c.transactions)
+        r.has_sar = c.sar_report is not None
         out.append(r)
     return out
 

@@ -16,12 +16,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from app import __version__
 from app.api.routes import api_router
 from app.core.config import settings
+from app.core.database import run_light_migrations
 from app.streaming import manager, simulator
 
 
 @contextlib.asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     """Start the transaction simulator on startup, stop it on shutdown."""
+    # Self-heal an existing demo DB that predates newer columns (e.g. the SAR
+    # citations column) so opening cases / generating SARs never 500s.
+    run_light_migrations()
     await simulator.start()
     try:
         yield

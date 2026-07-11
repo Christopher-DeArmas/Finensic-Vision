@@ -93,18 +93,39 @@ def build_sar_pdf(sar) -> bytes:
     section("2. Customer", _p(sar.customer_section, s["mono"]))
     section("3. Reason for Suspicion", _p(sar.reason, s["body"]))
 
-    evidence_items = []
-    for e in sar.evidence:
-        tag = e.get("rule") or e.get("transaction") or e.get("finding") or ""
-        detail = e.get("detail", "")
-        text = f"<b>{escape(str(tag))}</b> — {escape(str(detail))}" if tag else escape(str(detail))
-        evidence_items.append(ListItem(Paragraph(text, s["body"]), leftIndent=6))
-    section(
-        "4. Evidence",
-        ListFlowable(evidence_items, bulletType="1", leftIndent=14)
-        if evidence_items
-        else _p("None recorded.", s["body"]),
-    )
+    # 4. Evidence & Citations — the numbered catalog that the narrative's
+    # inline [R#]/[T#] markers reference, so every claim is auditable.
+    citations = getattr(sar, "citations", None) or []
+    if citations:
+        cite_items = []
+        for c in citations:
+            cid = escape(str(c.get("id", "")))
+            label = escape(str(c.get("label", "")))
+            detail = escape(str(c.get("detail", "")))
+            kind = "Rule" if c.get("kind") == "rule" else "Transaction"
+            text = f"<b>[{cid}]</b> &nbsp;{kind}: <b>{label}</b> — {detail}"
+            cite_items.append(ListItem(Paragraph(text, s["body"]), leftIndent=6))
+        section(
+            "4. Evidence &amp; Citations",
+            ListFlowable(cite_items, bulletType="bullet", leftIndent=14),
+        )
+    else:
+        evidence_items = []
+        for e in sar.evidence:
+            tag = e.get("rule") or e.get("transaction") or e.get("finding") or ""
+            detail = e.get("detail", "")
+            text = (
+                f"<b>{escape(str(tag))}</b> — {escape(str(detail))}"
+                if tag
+                else escape(str(detail))
+            )
+            evidence_items.append(ListItem(Paragraph(text, s["body"]), leftIndent=6))
+        section(
+            "4. Evidence",
+            ListFlowable(evidence_items, bulletType="1", leftIndent=14)
+            if evidence_items
+            else _p("None recorded.", s["body"]),
+        )
 
     timeline_items = [
         ListItem(
@@ -121,7 +142,8 @@ def build_sar_pdf(sar) -> bytes:
     )
 
     section("6. Recommendation", _p(sar.recommendation, s["body"]))
-    section("7. Analyst Notes", _p(sar.analyst_notes or "None.", s["body"]))
+    if sar.analyst_notes:
+        section("7. Analyst Notes", _p(sar.analyst_notes, s["body"]))
 
     story.append(Spacer(1, 18))
     story.append(HRFlowable(width="100%", thickness=0.5, color=MUTED))

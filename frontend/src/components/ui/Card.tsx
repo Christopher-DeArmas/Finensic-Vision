@@ -38,7 +38,7 @@ export function Panel({
         </div>
         {action}
       </header>
-      <div className={cn("flex-1 p-5", bodyClassName)}>{children}</div>
+      <div className={cn("min-h-0 flex-1 p-5", bodyClassName)}>{children}</div>
     </section>
   );
 }

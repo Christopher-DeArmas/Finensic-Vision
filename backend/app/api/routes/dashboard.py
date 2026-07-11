@@ -22,10 +22,11 @@ def dashboard_stats(db: Session = Depends(get_db)):
         todays_transactions=c["todays_transactions"],
         open_cases=c["open_cases"],
         critical_cases=c["critical_cases"],
+        closed_cases=c["closed_cases"],
         open_alerts=c["open_alerts"],
         risk_distribution=repo.risk_distribution(db),
-        top_risk_customers=customers_repo.top_risk(db, limit=8),
-        recent_alerts=alerts_repo.recent(db, limit=8),
+        top_risk_customers=customers_repo.top_risk(db, limit=10),
+        recent_alerts=alerts_repo.recent(db, limit=12),
         heatmap=repo.heatmap(db),
         top_regions=repo.top_regions(db),
     )

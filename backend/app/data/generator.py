@@ -49,7 +49,7 @@ LOW_SIGNALS = ["cash", "highrisk", "geo"]
 TIER_COMBOS = {
     "medium": [["velocity", "geo"], ["structuring", "highrisk"], ["structuring", "cash"], ["cash", "highrisk", "geo"], ["velocity", "cash"], ["dormant"], ["velocity", "highrisk"]],
     "high": [["structuring", "rapid"], ["dormant", "cash", "highrisk"], ["multisource", "geo"], ["velocity", "rapid"], ["dormant", "structuring"], ["multisource", "cash"], ["rapid", "velocity"]],
-    "critical": [["rapid", "multisource"], ["structuring", "rapid", "cash"], ["dormant", "rapid"], ["multisource", "rapid", "highrisk"], ["structuring", "dormant", "cash"]],
+    "critical": [["rapid", "multisource"], ["structuring", "rapid", "cash"], ["dormant", "rapid"], ["velocity", "rapid", "highrisk"], ["structuring", "dormant", "cash"]],
 }
 
 
