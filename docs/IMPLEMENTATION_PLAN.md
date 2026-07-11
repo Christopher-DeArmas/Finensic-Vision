@@ -57,11 +57,12 @@ generator that seeds realistic data plus planted laundering scenarios.
 
 ---
 
-## Stage 4 — WebSocket transaction stream ⬜
+## Stage 4 — WebSocket transaction stream ✅
 
-- ⬜ `streaming/connection_manager.py` — track clients, broadcast
-- ⬜ `streaming/simulator.py` — emit 2–5 txns/sec, persist, score, broadcast
-- ⬜ `/ws/transactions` endpoint + lifecycle hooks (startup/shutdown)
+- ✅ `streaming/connection_manager.py` — track clients, broadcast
+- ✅ `streaming/simulator.py` — emit 2–5 txns/sec, persist, score, broadcast
+- ✅ `streaming/scoring.py` — scoped per-customer live scoring
+- ✅ `/ws/transactions` endpoint + `/ws/status` + lifespan hooks (startup/shutdown)
 
 ---
 
