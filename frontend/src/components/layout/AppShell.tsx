@@ -9,12 +9,13 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { SearchBar } from "@/components/layout/SearchBar";
 
 const NAV = [
   { label: "Dashboard", icon: LayoutDashboard, to: "/", enabled: true },
   { label: "Investigations", icon: Network, to: "/investigations", enabled: true },
-  { label: "Customers", icon: Users, to: "#", enabled: false },
-  { label: "Alerts", icon: Bell, to: "#", enabled: false },
+  { label: "Customers", icon: Users, to: "/customers", enabled: true },
+  { label: "Alerts", icon: Bell, to: "/alerts", enabled: true },
 ];
 
 function Clock() {
@@ -108,6 +109,9 @@ export function AppShell() {
             </p>
           </div>
           <div className="flex items-center gap-4 text-xs">
+            <div className="hidden md:block">
+              <SearchBar />
+            </div>
             <Clock />
           </div>
         </header>

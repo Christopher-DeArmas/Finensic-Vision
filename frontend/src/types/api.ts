@@ -218,3 +218,12 @@ export interface SarReportRead {
   analyst_notes: string | null;
   generated_at: string;
 }
+
+// --- Global search ---
+
+export interface SearchResults {
+  customers: { id: number; name: string; risk_level: RiskLevel }[];
+  accounts: { id: number; account_number: string; type: string }[];
+  merchants: { id: number; name: string; category: string }[];
+  transactions: { id: number; external_id: string; amount: number }[];
+}

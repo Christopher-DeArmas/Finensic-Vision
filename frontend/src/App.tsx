@@ -3,6 +3,8 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Dashboard } from "@/pages/Dashboard";
 import { InvestigationsList } from "@/pages/InvestigationsList";
 import { Investigation } from "@/pages/Investigation";
+import { Customers } from "@/pages/Customers";
+import { Alerts } from "@/pages/Alerts";
 
 export default function App() {
   return (
@@ -11,6 +13,8 @@ export default function App() {
         <Route index element={<Dashboard />} />
         <Route path="investigations" element={<InvestigationsList />} />
         <Route path="investigations/:customerId" element={<Investigation />} />
+        <Route path="customers" element={<Customers />} />
+        <Route path="alerts" element={<Alerts />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
