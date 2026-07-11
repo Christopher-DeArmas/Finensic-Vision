@@ -51,3 +51,13 @@ def get_case(db: Session, case_id: int) -> CaseRead | None:
     if c is None:
         return None
     return _to_read(db, [c])[0]
+
+
+def for_customer(db: Session, customer_id: int) -> list[CaseRead]:
+    rows = (
+        db.query(Case)
+        .filter(Case.customer_id == customer_id)
+        .order_by(Case.opened_at.desc())
+        .all()
+    )
+    return _to_read(db, rows)

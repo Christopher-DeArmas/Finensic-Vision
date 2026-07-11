@@ -8,6 +8,7 @@ from app.api.routes import (
     cases,
     customers,
     dashboard,
+    investigations,
     merchants,
     risk_scores,
     search,
@@ -21,6 +22,7 @@ api_router.include_router(transactions.router)
 api_router.include_router(merchants.router)
 api_router.include_router(alerts.router)
 api_router.include_router(cases.router)
+api_router.include_router(investigations.router)
 api_router.include_router(risk_scores.router)
 api_router.include_router(search.router)
 api_router.include_router(admin.router)

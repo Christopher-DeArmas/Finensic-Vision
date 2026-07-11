@@ -95,6 +95,21 @@ engine during the demo.
 > iCloud/Dropbox-synced or network folder. If that happens, point
 > `DATABASE_URL` at a local path, e.g. `sqlite:////tmp/sentinel.db`.
 
+### Frontend (dashboard)
+
+With the backend running, in a second terminal:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open **http://localhost:5173**. The Vite dev server proxies `/api` and `/ws`
+to the backend, so the dashboard shows live KPIs, the risk distribution, a
+fraud heatmap, top-risk customers, recent alerts, and a real-time transaction
+feed (suspicious transactions flash red). Black & gold theme, dark mode.
+
 ---
 
 ## Environment variables
@@ -113,14 +128,14 @@ See [`backend/.env.example`](backend/.env.example). Key values:
 
 ## Build stages
 
-This project is built in the staged order below. **Stages 1–4 are complete.**
+This project is built in the staged order below. **Stages 1–6 are complete.**
 
 1. ✅ **Backend + database** — schema, models, synthetic data generation
 2. ✅ AML rule engine + risk scoring
 3. ✅ REST APIs
 4. ✅ WebSocket transaction stream
-5. ⬜ React dashboard
-6. ⬜ Investigation page (React Flow graph + timeline)
+5. ✅ React dashboard
+6. ✅ Investigation page (React Flow graph + timeline)
 7. ⬜ OpenAI summaries + SAR generation
 8. ⬜ Polish: animations, loading states, error handling
 

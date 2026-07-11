@@ -66,20 +66,20 @@ generator that seeds realistic data plus planted laundering scenarios.
 
 ---
 
-## Stage 5 — React dashboard ⬜
+## Stage 5 — React dashboard ✅
 
-- ⬜ Vite + Tailwind + shadcn/ui + dark theme setup
-- ⬜ API + WS clients, typed `types/`
-- ⬜ KPI cards, risk distribution, fraud heatmap, live feed, top-risk
+- ✅ Vite + Tailwind + shadcn/ui + dark theme setup
+- ✅ API + WS clients, typed `types/`
+- ✅ KPI cards, risk distribution, fraud heatmap, live feed, top-risk
   customers, recent alerts, animated Recharts
 
 ---
 
-## Stage 6 — Investigation page ⬜
+## Stage 6 — Investigation page ✅
 
-- ⬜ Split layout (customer / graph / AI / timeline)
-- ⬜ React Flow transaction graph, risk-colored nodes, highlighted paths
-- ⬜ Timeline component (account created → txns → alerts → case)
+- ✅ Split layout (customer / graph / AI / timeline)
+- ✅ React Flow transaction graph, risk-colored nodes, highlighted paths
+- ✅ Timeline component (account created → txns → alerts → case)
 
 ---
 

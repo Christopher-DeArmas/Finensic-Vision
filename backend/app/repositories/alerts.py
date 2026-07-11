@@ -69,3 +69,13 @@ def recent(db: Session, limit: int = 8) -> list[AlertRead]:
         .all()
     )
     return _to_read(db, rows)
+
+
+def for_customer(db: Session, customer_id: int) -> list[AlertRead]:
+    rows = (
+        db.query(Alert)
+        .filter(Alert.customer_id == customer_id)
+        .order_by(Alert.created_at.desc(), Alert.id.desc())
+        .all()
+    )
+    return _to_read(db, rows)
