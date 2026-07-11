@@ -29,18 +29,18 @@ generator that seeds realistic data plus planted laundering scenarios.
 
 ---
 
-## Stage 2 — AML rule engine + risk scoring ⬜
+## Stage 2 — AML rule engine + risk scoring ✅
 
 **Goal:** pure, explainable heuristics that score customers.
 
-- ⬜ `rules/base.py` — `Rule` protocol, `RuleResult(points, reason, severity, transactions)`
-- ⬜ Rules 1–10: structuring, rapid movement, circular transfers, dormant
+- ✅ `rules/base.py` — `Rule` protocol, `RuleResult(points, reason, severity, transactions)`
+- ✅ Rules 1–10: structuring, rapid movement, circular transfers, dormant
   awakening, velocity, geographic anomaly, multiple incoming sources,
   high-risk jurisdiction, large cash deposit, account explosion
-- ⬜ `rules/engine.py` — run all rules for a customer, aggregate + normalize 0–100
-- ⬜ `services/scoring_service.py` — load context, run engine, persist `risk_scores`
-- ⬜ `services/alert_service.py` — raise alerts above threshold
-- ⬜ Unit tests per rule against the planted scenarios
+- ✅ `rules/engine.py` — run all rules for a customer, aggregate + normalize 0–100
+- ✅ `services/scoring_service.py` — load context, run engine, persist `risk_scores`
+- ✅ `services/alert_service.py` — raise alerts above threshold
+- ✅ Unit tests per rule against the planted scenarios
 
 ---
 

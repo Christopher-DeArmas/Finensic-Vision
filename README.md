@@ -109,10 +109,10 @@ See [`backend/.env.example`](backend/.env.example). Key values:
 
 ## Build stages
 
-This project is built in the staged order below. **Stage 1 is complete.**
+This project is built in the staged order below. **Stages 1–2 are complete.**
 
 1. ✅ **Backend + database** — schema, models, synthetic data generation
-2. ⬜ AML rule engine + risk scoring
+2. ✅ AML rule engine + risk scoring
 3. ⬜ REST APIs
 4. ⬜ WebSocket transaction stream
 5. ⬜ React dashboard

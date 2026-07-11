@@ -37,7 +37,8 @@ class Settings(BaseSettings):
     stream_max_tps: int = Field(default=5)
 
     # --- Risk / alerting ---
-    alert_threshold: int = Field(default=50)
+    # Score at/above which an alert is raised (High band and up).
+    alert_threshold: int = Field(default=40)
 
     # --- Synthetic data ---
     seed: int = Field(default=42)
