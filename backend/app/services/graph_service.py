@@ -31,6 +31,7 @@ class _Agg:
     risk_level: str | None = None
     is_high_risk: bool = False
     kind: str = "customer"
+    txn_ids: list = field(default_factory=list)
 
     @property
     def total(self) -> float:
@@ -92,12 +93,14 @@ def build_customer_graph(db: Session, customer_id: int) -> GraphData | None:
                 continue
             a.count += 1
             a.suspicious = a.suspicious or t.is_flagged
+            a.txn_ids.append(t.id)
         # Subject -> merchant payments.
         elif t.sender_account_id in acc_ids:
             a = merch_agg.setdefault(t.merchant_id, _Agg(kind="merchant"))
             a.outbound += t.amount
             a.count += 1
             a.suspicious = a.suspicious or t.is_flagged
+            a.txn_ids.append(t.id)
 
     # Enrich counterparty labels/risk.
     if cust_agg:
@@ -169,6 +172,7 @@ def build_customer_graph(db: Session, customer_id: int) -> GraphData | None:
                 amount=round(a.total, 2),
                 count=a.count,
                 suspicious=a.suspicious,
+                transaction_ids=a.txn_ids,
             )
         )
     for mid, a in top_merch:
@@ -180,6 +184,7 @@ def build_customer_graph(db: Session, customer_id: int) -> GraphData | None:
                 amount=round(a.total, 2),
                 count=a.count,
                 suspicious=a.suspicious,
+                transaction_ids=a.txn_ids,
             )
         )
 

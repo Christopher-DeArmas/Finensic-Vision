@@ -17,12 +17,16 @@ export function Dashboard() {
   // polled stats refresh (which already include the persisted live txns), then
   // add anything streamed since — so the KPI ticks up without double counting.
   const baseline = useRef(0);
+  const displayRef = useRef(0);
   useEffect(() => {
     baseline.current = feed.totalSeen;
   }, [stats]);
-  const liveToday = stats
+  const target = stats
     ? stats.todays_transactions + Math.max(0, feed.totalSeen - baseline.current)
     : 0;
+  // Only ever tick up — never let the live count flicker downward (item 8).
+  if (target > displayRef.current) displayRef.current = target;
+  const liveToday = displayRef.current;
 
   if (loading && !stats) {
     return (
@@ -61,7 +65,7 @@ export function Dashboard() {
 
       <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-12">
         <div className="lg:col-span-8">
-          <FraudHeatmap stats={stats} livePoints={feed.transactions} />
+          <FraudHeatmap livePoints={feed.transactions} />
         </div>
         <div className="lg:col-span-4">
           <RiskDistribution stats={stats} />

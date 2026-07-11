@@ -26,6 +26,19 @@ COUNTRY_REGION: dict[str, str] = {
     "Japan": "Asia",
     "United Arab Emirates": "Middle East",
     "Nigeria": "Africa",
+    "Canada": "North America",
+    "Mexico": "North America",
+    "Brazil": "South America",
+    "France": "Europe",
+    "Netherlands": "Europe",
+    "Spain": "Europe",
+    "Italy": "Europe",
+    "Sweden": "Europe",
+    "India": "Asia",
+    "South Korea": "Asia",
+    "China": "Asia",
+    "Australia": "Oceania",
+    "South Africa": "Africa",
 }
 
 

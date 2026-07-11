@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ComposableMap,
   Geographies,
@@ -11,7 +11,7 @@ import worldTopo from "world-atlas/countries-110m.json";
 import { Panel } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { formatCurrency } from "@/lib/format";
-import type { DashboardStats, LiveTransaction } from "@/types/api";
+import type { LiveTransaction } from "@/types/api";
 
 const geography = worldTopo as object;
 const MIN_ZOOM = 1;
@@ -20,55 +20,72 @@ const INITIAL: { coordinates: [number, number]; zoom: number } = {
   coordinates: [5, 20],
   zoom: 1,
 };
-const MAX_POINTS = 600;
+const MAX_POINTS = 400;
 
 interface Position {
   coordinates: [number, number];
   zoom: number;
 }
 interface Pt {
+  id: string;
   latitude: number;
   longitude: number;
   amount: number;
   country: string;
+  city: string;
+  type: string;
   is_flagged: boolean;
-  label?: string | null;
+  label: string | null;
+}
+interface Hover {
+  p: Pt;
+  x: number;
+  y: number;
 }
 
-export function FraudHeatmap({
-  stats,
-  livePoints = [],
-}: {
-  stats: DashboardStats;
-  livePoints?: LiveTransaction[];
-}) {
+export function FraudHeatmap({ livePoints }: { livePoints: LiveTransaction[] }) {
   const [pos, setPos] = useState<Position>(INITIAL);
+  const [points, setPoints] = useState<Pt[]>([]);
+  const [hover, setHover] = useState<Hover | null>(null);
+  const seen = useRef<Set<string>>(new Set());
+  const wrapRef = useRef<HTMLDivElement>(null);
   const k = pos.zoom;
 
-  // Live transactions stream in front of the seeded snapshot, so the map and
-  // its counts update continuously (items 9 & 12).
-  const live: Pt[] = livePoints.map((t) => ({
-    latitude: t.latitude,
-    longitude: t.longitude,
-    amount: t.amount,
-    country: t.country,
-    is_flagged: t.is_flagged,
-    label: t.merchant_name || t.sender_name || t.receiver_name || null,
-  }));
-  const all: Pt[] = [...live, ...stats.heatmap].slice(0, MAX_POINTS);
-  const flagged = all.filter((p) => p.is_flagged);
-  const normal = all.filter((p) => !p.is_flagged);
+  // Accumulate streamed transactions onto the map, starting from zero (items 1, 5).
+  useEffect(() => {
+    const fresh: Pt[] = [];
+    for (const t of livePoints) {
+      if (seen.current.has(t.external_id)) continue;
+      seen.current.add(t.external_id);
+      fresh.push({
+        id: t.external_id,
+        latitude: t.latitude,
+        longitude: t.longitude,
+        amount: t.amount,
+        country: t.country,
+        city: t.city,
+        type: t.transaction_type,
+        is_flagged: t.is_flagged,
+        label: t.merchant_name || t.sender_name || t.receiver_name || null,
+      });
+    }
+    if (fresh.length) setPoints((prev) => [...fresh, ...prev].slice(0, MAX_POINTS));
+  }, [livePoints]);
+
+  const flagged = points.filter((p) => p.is_flagged);
+  const normal = points.filter((p) => !p.is_flagged);
 
   const setZoom = (z: number) =>
     setPos((p) => ({ ...p, zoom: Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z)) }));
 
+  const onEnter = (e: React.MouseEvent, p: Pt) => {
+    const rect = wrapRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setHover({ p, x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
+
   const btn =
     "grid h-7 w-7 place-items-center rounded-md border border-white/10 bg-ink-900/80 text-white/70 backdrop-blur transition-colors hover:border-gold-500/40 hover:text-gold-300";
-
-  const title = (p: Pt) =>
-    `${p.label ?? "Unknown"} · ${formatCurrency(p.amount)} · ${p.country}${
-      p.is_flagged ? " · FLAGGED" : ""
-    }`;
 
   return (
     <Panel
@@ -86,7 +103,7 @@ export function FraudHeatmap({
         </div>
       }
     >
-      <div className="relative">
+      <div ref={wrapRef} className="relative">
         <div className="h-[360px] w-full overflow-hidden">
           <ComposableMap
             projection="geoEqualEarth"
@@ -101,6 +118,9 @@ export function FraudHeatmap({
               minZoom={MIN_ZOOM}
               maxZoom={MAX_ZOOM}
               onMoveEnd={(p) => setPos(p as Position)}
+              // Block wheel / trackpad / double-click zoom; drag-pan still works (item 12).
+              filterZoomEvent={((e: Event) =>
+                e.type !== "wheel" && e.type !== "dblclick") as never}
             >
               <Geographies geography={geography}>
                 {({ geographies }) =>
@@ -121,24 +141,62 @@ export function FraudHeatmap({
                 }
               </Geographies>
 
-              {normal.map((p, i) => (
-                <Marker key={`n${i}`} coordinates={[p.longitude, p.latitude]}>
-                  <circle r={1.5 / k} fill="#d4af37" fillOpacity={0.55}>
-                    <title>{title(p)}</title>
-                  </circle>
+              {normal.map((p) => (
+                <Marker key={p.id} coordinates={[p.longitude, p.latitude]}>
+                  <circle
+                    r={1.6 / k}
+                    fill="#d4af37"
+                    fillOpacity={0.55}
+                    className="cursor-pointer"
+                    onMouseEnter={(e) => onEnter(e, p)}
+                    onMouseLeave={() => setHover(null)}
+                  />
                 </Marker>
               ))}
-              {flagged.map((p, i) => (
-                <Marker key={`f${i}`} coordinates={[p.longitude, p.latitude]}>
-                  <circle r={4.2 / k} fill="none" stroke="#ef4444" strokeOpacity={0.35} strokeWidth={0.8 / k} />
-                  <circle r={2.4 / k} fill="#ef4444" fillOpacity={0.9} className="cursor-pointer">
-                    <title>{title(p)}</title>
-                  </circle>
+              {flagged.map((p) => (
+                <Marker key={p.id} coordinates={[p.longitude, p.latitude]}>
+                  <circle r={4.4 / k} fill="none" stroke="#ef4444" strokeOpacity={0.35} strokeWidth={0.8 / k} />
+                  <circle
+                    r={2.6 / k}
+                    fill="#ef4444"
+                    fillOpacity={0.9}
+                    className="cursor-pointer"
+                    onMouseEnter={(e) => onEnter(e, p)}
+                    onMouseLeave={() => setHover(null)}
+                  />
                 </Marker>
               ))}
             </ZoomableGroup>
           </ComposableMap>
         </div>
+
+        {/* Hover popup with transaction details (item 4) */}
+        {hover && (
+          <div
+            className="pointer-events-none absolute z-20 w-52 -translate-x-1/2 -translate-y-full rounded-lg border border-white/10 bg-ink-900/95 p-2.5 shadow-card backdrop-blur"
+            style={{ left: hover.x, top: hover.y - 8 }}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="truncate text-xs font-semibold text-white/90">
+                {hover.p.label ?? "Unknown"}
+              </span>
+              {hover.p.is_flagged && (
+                <span className="text-[10px] font-bold uppercase text-risk-critical">
+                  Flagged
+                </span>
+              )}
+            </div>
+            <div className="mt-1 text-[11px] text-white/50">
+              {hover.p.type} · {hover.p.city}, {hover.p.country}
+            </div>
+            <div
+              className="mt-0.5 text-sm font-bold tabular-nums"
+              style={{ color: hover.p.is_flagged ? "#ef4444" : "#d4af37" }}
+            >
+              {formatCurrency(hover.p.amount)}
+            </div>
+          </div>
+        )}
 
         <div className="absolute right-3 top-3 flex flex-col gap-1">
           <button className={btn} onClick={() => setZoom(k * 1.6)} aria-label="Zoom in">
@@ -153,8 +211,8 @@ export function FraudHeatmap({
         </div>
 
         <p className="px-4 py-2 text-[11px] text-white/35">
-          Drag to pan · scroll or +/− to zoom · hover a point for details · red
-          marks rule-flagged activity.
+          Live transactions plotted as they stream · drag to pan · hover a point
+          for details · red marks rule-flagged activity.
         </p>
       </div>
     </Panel>

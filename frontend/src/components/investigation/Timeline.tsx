@@ -5,6 +5,7 @@ import {
   UserPlus,
   type LucideIcon,
 } from "lucide-react";
+import { cn } from "@/lib/cn";
 import { RISK_COLORS } from "@/components/ui/RiskBadge";
 import { formatCurrency } from "@/lib/format";
 import type { Severity, TimelineEvent } from "@/types/api";
@@ -31,7 +32,15 @@ function stamp(iso: string): string {
   });
 }
 
-export function Timeline({ events }: { events: TimelineEvent[] }) {
+export function Timeline({
+  events,
+  selectedId,
+  onSelect,
+}: {
+  events: TimelineEvent[];
+  selectedId?: number | null;
+  onSelect?: (id: number | null) => void;
+}) {
   if (events.length === 0) {
     return <p className="p-4 text-sm text-white/40">No timeline events.</p>;
   }
@@ -40,8 +49,23 @@ export function Timeline({ events }: { events: TimelineEvent[] }) {
       {events.map((e) => {
         const Icon = ICONS[e.type];
         const c = color(e);
+        const txnId =
+          e.type === "transaction" ? Number(e.id.replace("txn-", "")) : null;
+        const clickable = txnId != null && !!onSelect;
+        const isSel = clickable && selectedId === txnId;
         return (
-          <li key={e.id} className="mb-4 ml-5 last:mb-0">
+          <li
+            key={e.id}
+            onClick={
+              clickable ? () => onSelect!(isSel ? null : txnId) : undefined
+            }
+            className={cn(
+              "mb-4 ml-5 rounded-lg last:mb-0",
+              clickable &&
+                "-mx-2 cursor-pointer px-2 py-1 transition-colors hover:bg-white/5",
+              isSel && "bg-gold-500/10 ring-1 ring-gold-500/30",
+            )}
+          >
             <span
               className="absolute -left-[11px] grid h-[22px] w-[22px] place-items-center rounded-full ring-4 ring-ink-850"
               style={{ backgroundColor: `${c}22`, color: c }}

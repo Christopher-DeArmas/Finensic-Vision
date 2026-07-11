@@ -114,6 +114,7 @@ export interface GraphEdge {
   amount: number;
   count: number;
   suspicious: boolean;
+  transaction_ids: number[];
 }
 
 export interface GraphData {

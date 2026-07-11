@@ -21,6 +21,7 @@ class GraphEdge(BaseModel):
     amount: float
     count: int
     suspicious: bool = False
+    transaction_ids: list[int] = []
 
 
 class GraphData(BaseModel):

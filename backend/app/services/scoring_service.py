@@ -229,6 +229,7 @@ class ScoringService:
                 sender_cust is not None
                 and receiver_cust is not None
                 and sender_cust != receiver_cust
+                and t.amount >= 25_000
                 and t.transaction_type
                 in (TransactionType.TRANSFER.value, TransactionType.WIRE.value)
             ):

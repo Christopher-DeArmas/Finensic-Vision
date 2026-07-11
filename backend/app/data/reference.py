@@ -23,6 +23,27 @@ LOCATIONS: dict[str, tuple[str, float, float]] = {
     "Singapore": ("Singapore", 1.3521, 103.8198),
     "Hong Kong": ("Hong Kong", 22.3193, 114.1694),
     "Tokyo": ("Japan", 35.6762, 139.6503),
+    "San Francisco": ("United States", 37.7749, -122.4194),
+    "Seattle": ("United States", 47.6062, -122.3321),
+    "Boston": ("United States", 42.3601, -71.0589),
+    "Denver": ("United States", 39.7392, -104.9903),
+    "Atlanta": ("United States", 33.7490, -84.3880),
+    "Dallas": ("United States", 32.7767, -96.7970),
+    "Phoenix": ("United States", 33.4484, -112.0740),
+    "Toronto": ("Canada", 43.6532, -79.3832),
+    "Mexico City": ("Mexico", 19.4326, -99.1332),
+    "Sao Paulo": ("Brazil", -23.5505, -46.6333),
+    "Paris": ("France", 48.8566, 2.3522),
+    "Amsterdam": ("Netherlands", 52.3676, 4.9041),
+    "Madrid": ("Spain", 40.4168, -3.7038),
+    "Berlin": ("Germany", 52.5200, 13.4050),
+    "Milan": ("Italy", 45.4642, 9.1900),
+    "Stockholm": ("Sweden", 59.3293, 18.0686),
+    "Mumbai": ("India", 19.0760, 72.8777),
+    "Seoul": ("South Korea", 37.5665, 126.9780),
+    "Shanghai": ("China", 31.2304, 121.4737),
+    "Sydney": ("Australia", -33.8688, 151.2093),
+    "Johannesburg": ("South Africa", -26.2041, 28.0473),
     # Higher-risk / offshore jurisdictions (for the high-risk rule)
     "Panama City": ("Panama", 8.9824, -79.5199),
     "George Town": ("Cayman Islands", 19.2866, -81.3744),
@@ -32,8 +53,15 @@ LOCATIONS: dict[str, tuple[str, float, float]] = {
     "Moscow": ("Russia", 55.7558, 37.6173),
 }
 
-US_CITIES = ["New York", "Miami", "Los Angeles", "Chicago", "Houston"]
-INTL_CITIES = ["London", "Frankfurt", "Zurich", "Dubai", "Singapore", "Hong Kong", "Tokyo"]
+US_CITIES = [
+    "New York", "Miami", "Los Angeles", "Chicago", "Houston",
+    "San Francisco", "Seattle", "Boston", "Denver", "Atlanta", "Dallas", "Phoenix",
+]
+INTL_CITIES = [
+    "London", "Frankfurt", "Zurich", "Dubai", "Singapore", "Hong Kong", "Tokyo",
+    "Toronto", "Mexico City", "Sao Paulo", "Paris", "Amsterdam", "Madrid", "Berlin",
+    "Milan", "Stockholm", "Mumbai", "Seoul", "Shanghai", "Sydney", "Johannesburg",
+]
 HIGH_RISK_CITIES = [
     "Panama City",
     "George Town",

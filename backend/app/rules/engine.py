@@ -15,10 +15,6 @@ from app.rules.context import RuleContext
 from app.rules.rules import ALL_RULES
 from app.utils.enums import RiskLevel, Severity
 
-# Raw points are normalized against this reference so that reaching the
-# critical band (76-100) requires several strong rules and 100 is very rare.
-SCORE_MAX_REFERENCE = 130
-
 _SEVERITY_ORDER = {
     Severity.LOW: 0,
     Severity.MEDIUM: 1,
@@ -70,7 +66,7 @@ class RuleEngine:
                 results.append(outcome)
 
         raw = sum(r.points for r in results)
-        score = min(100, round(raw * 100 / SCORE_MAX_REFERENCE))
+        score = min(100, raw)
         return ScoreResult(
             score=score,
             risk_level=RiskLevel.from_score(score),

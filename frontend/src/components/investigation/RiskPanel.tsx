@@ -104,8 +104,8 @@ export function RiskPanel({
 
         {!caseId ? (
           <p className="text-xs leading-relaxed text-white/50">
-            Open a case (button above) to generate the AI investigation summary
-            and Suspicious Activity Report.
+            You must open a case on this customer in order to generate the AI
+            powered Investigation Summary and Suspicious Activity Report.
           </p>
         ) : !summary ? (
           <button

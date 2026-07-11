@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   FolderPlus,
@@ -23,8 +23,10 @@ import type { AISummary } from "@/types/api";
 export function Investigation() {
   const { customerId } = useParams();
   const id = Number(customerId);
+  const navigate = useNavigate();
   const { bundle, loading, error, reload } = useInvestigation(id);
   const [opening, setOpening] = useState(false);
+  const [highlightTxn, setHighlightTxn] = useState<number | null>(null);
 
   if (loading && !bundle) {
     return (
@@ -67,12 +69,12 @@ export function Investigation() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Link
-            to="/"
+          <button
+            onClick={() => navigate(-1)}
             className="grid h-8 w-8 place-items-center rounded-lg border border-white/10 text-white/60 transition-colors hover:border-gold-500/40 hover:text-gold-300"
           >
             <ArrowLeft size={16} />
-          </Link>
+          </button>
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-lg font-semibold text-white">
@@ -129,7 +131,7 @@ export function Investigation() {
                   </div>
                 }
               >
-                <TransactionGraph graph={graph} />
+                <TransactionGraph graph={graph} highlightTxnId={highlightTxn} />
               </ErrorBoundary>
             </div>
           </Panel>
@@ -140,7 +142,11 @@ export function Investigation() {
             title="Investigation Timeline"
             bodyClassName="max-h-[460px] overflow-y-auto"
           >
-            <Timeline events={timeline} />
+            <Timeline
+              events={timeline}
+              selectedId={highlightTxn}
+              onSelect={setHighlightTxn}
+            />
           </Panel>
         </div>
       </div>

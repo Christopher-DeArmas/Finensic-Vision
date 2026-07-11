@@ -43,6 +43,15 @@ NUM_CUSTOMERS = 150
 NORMAL_TXNS_PER_CUSTOMER = (12, 40)  # (min, max) ordinary transactions each
 HISTORY_DAYS = 270  # ~9 months of history
 
+# Behavior combos used to place a customer into a target risk band. Each named
+# behavior triggers a specific AML rule; the sums land in the intended band.
+LOW_SIGNALS = ["cash", "highrisk", "geo"]
+TIER_COMBOS = {
+    "medium": [["velocity", "geo"], ["structuring", "highrisk"], ["structuring", "cash"], ["cash", "highrisk", "geo"], ["velocity", "cash"], ["dormant"], ["velocity", "highrisk"]],
+    "high": [["structuring", "rapid"], ["dormant", "cash", "highrisk"], ["multisource", "geo"], ["velocity", "rapid"], ["dormant", "structuring"], ["multisource", "cash"], ["rapid", "velocity"]],
+    "critical": [["rapid", "multisource"], ["structuring", "rapid", "cash"], ["dormant", "rapid"], ["multisource", "rapid", "highrisk"], ["structuring", "dormant", "cash"]],
+}
+
 
 @dataclass
 class GenerationSummary:
@@ -171,9 +180,9 @@ class SyntheticDataGenerator:
         country, _lat, _lon = ref.LOCATIONS[city]
 
         is_high_risk_jur = country in ref.HIGH_RISK_COUNTRIES
-        date_opened = self.now - timedelta(
-            days=self.rng.randint(400, 3200)
-        )
+        date_opened = self.now - timedelta(days=self.rng.randint(400, 3200))
+        if scenario_tag == ScenarioTag.ACCOUNT_EXPLOSION:
+            date_opened = self.now - timedelta(days=self.rng.randint(6, 14))
 
         monthly_income = income / 12.0
         monthly_spend = monthly_income * self.rng.uniform(0.5, 0.85)
@@ -307,57 +316,119 @@ class SyntheticDataGenerator:
                     city=customer.city,
                 )
 
-        self._inject_minor_risk(customer, checking)
+        self._apply_risk_tier(customer, checking)
 
-    def _inject_minor_risk(self, customer: Customer, checking: Account) -> None:
-        """Give a random subset of ordinary customers small risk signals so the
-        population shows a natural spread of no / small / medium risk instead of
-        everyone sitting at zero (items 6-7)."""
-        roll = self.rng.random()
-        tier = 0
-        if roll < 0.30:
-            tier = 1  # one minor signal -> low band
-        elif roll < 0.38:
-            tier = 2  # two minor signals -> medium band
-        if tier == 0:
+    # -- risk-tier behavior injection --------------------------------------
+
+    def _apply_risk_tier(self, customer: Customer, checking: Account) -> None:
+        """Assign each ordinary customer a target risk tier by weighted chance
+        (~60% low / 25% medium / 10% high / 5% critical) and inject the
+        rule-triggering behaviors to land in that band (items 10-11)."""
+        r = self.rng.random()
+        if r < 0.60:
+            if self.rng.random() < 0.55:
+                return  # a clean, no-risk customer
+            self._run_behavior(self.rng.choice(LOW_SIGNALS), customer, checking)
             return
+        tier = "medium" if r < 0.88 else "high" if r < 0.98 else "critical"
+        for beh in self.rng.choice(TIER_COMBOS[tier]):
+            self._run_behavior(beh, customer, checking)
 
-        signals = self.rng.sample(["cash", "geo", "highrisk"], k=tier)
-        base = self.now - timedelta(days=self.rng.randint(1, 60))
-        for sig in signals:
-            if sig == "cash":
+    def _run_behavior(self, beh: str, customer: Customer, checking: Account) -> None:
+        base = self.now - timedelta(days=self.rng.randint(2, 90))
+        if beh == "cash":
+            self._add_transaction(
+                receiver=checking, sender=None, merchant=None,
+                amount=round(self.rng.uniform(10_500, 14_000), 2),
+                ttype=TransactionType.DEPOSIT, method=PaymentMethod.CASH,
+                timestamp=base, city=customer.city, flagged=True,
+            )
+        elif beh == "highrisk":
+            self._add_transaction(
+                sender=checking, receiver=None,
+                merchant=self.rng.choice(self._merchants_in("retail")),
+                amount=round(self.rng.uniform(80, 700), 2),
+                ttype=TransactionType.PAYMENT, method=PaymentMethod.CARD,
+                timestamp=base, city=self.rng.choice(ref.HIGH_RISK_CITIES),
+                flagged=True,
+            )
+        elif beh == "geo":
+            self._add_transaction(
+                sender=checking, receiver=None,
+                merchant=self.rng.choice(self._merchants_in("retail")),
+                amount=round(self.rng.uniform(60, 400), 2),
+                ttype=TransactionType.PAYMENT, method=PaymentMethod.CARD,
+                timestamp=base, city="Miami", flagged=True,
+            )
+            self._add_transaction(
+                sender=checking, receiver=None,
+                merchant=self.rng.choice(self._merchants_in("electronics")),
+                amount=round(self.rng.uniform(60, 400), 2),
+                ttype=TransactionType.PAYMENT, method=PaymentMethod.CARD,
+                timestamp=base + timedelta(minutes=self.rng.randint(12, 40)),
+                city="Tokyo", flagged=True,
+            )
+        elif beh == "velocity":
+            for i, other in enumerate(self._random_other_customers(customer, 9)):
+                self._add_transaction(
+                    sender=checking, receiver=self._primary_account(other),
+                    merchant=None, amount=round(self.rng.uniform(1_500, 5_000), 2),
+                    ttype=TransactionType.TRANSFER, method=PaymentMethod.ACH,
+                    timestamp=base + timedelta(minutes=i * self.rng.randint(1, 3)),
+                    city=customer.city, flagged=True,
+                )
+        elif beh == "structuring":
+            for i in range(5):
                 self._add_transaction(
                     receiver=checking, sender=None, merchant=None,
-                    amount=round(self.rng.uniform(10_500, 13_500), 2),
+                    amount=round(self.rng.uniform(9_000, 9_900), 2),
                     ttype=TransactionType.DEPOSIT, method=PaymentMethod.CASH,
-                    timestamp=base - timedelta(hours=self.rng.randint(1, 200)),
-                    city=customer.city,
+                    timestamp=base + timedelta(days=i * self.rng.choice([1, 2])),
+                    city=customer.city, flagged=True,
                 )
-            elif sig == "geo":
-                a = base - timedelta(days=self.rng.randint(1, 20))
+        elif beh == "dormant":
+            savings = self.accounts_by_customer[customer.id][
+                AccountType.SAVINGS.value
+            ]
+            savings.last_activity_at = self.now - timedelta(days=210)
+            savings.is_dormant = True
+            self._add_transaction(
+                receiver=savings, sender=None, merchant=None,
+                amount=round(self.rng.uniform(150, 400), 2),
+                ttype=TransactionType.DEPOSIT, method=PaymentMethod.ACH,
+                timestamp=self.now - timedelta(days=self.rng.randint(215, 300)),
+                city=customer.city,
+            )
+            self._add_transaction(
+                receiver=savings, sender=None, merchant=None,
+                amount=round(self.rng.uniform(90_000, 180_000), 2),
+                ttype=TransactionType.WIRE, method=PaymentMethod.WIRE,
+                timestamp=self.now - timedelta(days=self.rng.randint(1, 5)),
+                city=customer.city, flagged=True,
+            )
+        elif beh == "rapid":
+            inbound = round(self.rng.uniform(40_000, 90_000), 2)
+            self._add_transaction(
+                receiver=checking, sender=None, merchant=None, amount=inbound,
+                ttype=TransactionType.WIRE, method=PaymentMethod.WIRE,
+                timestamp=base, city=customer.city, flagged=True,
+            )
+            other = self._random_other_customers(customer, 1)[0]
+            self._add_transaction(
+                sender=checking, receiver=self._primary_account(other), merchant=None,
+                amount=round(inbound * self.rng.uniform(0.9, 0.98), 2),
+                ttype=TransactionType.TRANSFER, method=PaymentMethod.WIRE,
+                timestamp=base + timedelta(minutes=self.rng.randint(20, 90)),
+                city=customer.city, flagged=True,
+            )
+        elif beh == "multisource":
+            for i, snd in enumerate(self._random_other_customers(customer, 18)):
                 self._add_transaction(
-                    sender=checking, receiver=None,
-                    merchant=self.rng.choice(self._merchants_in("retail")),
-                    amount=round(self.rng.uniform(60, 400), 2),
-                    ttype=TransactionType.PAYMENT, method=PaymentMethod.CARD,
-                    timestamp=a, city="Miami",
-                )
-                self._add_transaction(
-                    sender=checking, receiver=None,
-                    merchant=self.rng.choice(self._merchants_in("electronics")),
-                    amount=round(self.rng.uniform(60, 400), 2),
-                    ttype=TransactionType.PAYMENT, method=PaymentMethod.CARD,
-                    timestamp=a + timedelta(minutes=self.rng.randint(12, 40)),
-                    city="Tokyo",
-                )
-            elif sig == "highrisk":
-                self._add_transaction(
-                    sender=checking, receiver=None,
-                    merchant=self.rng.choice(self._merchants_in("retail")),
-                    amount=round(self.rng.uniform(80, 600), 2),
-                    ttype=TransactionType.PAYMENT, method=PaymentMethod.CARD,
-                    timestamp=base - timedelta(hours=self.rng.randint(1, 300)),
-                    city=self.rng.choice(ref.HIGH_RISK_CITIES),
+                    sender=self._primary_account(snd), receiver=checking,
+                    merchant=None, amount=round(self.rng.uniform(1_500, 4_500), 2),
+                    ttype=TransactionType.TRANSFER, method=PaymentMethod.ACH,
+                    timestamp=base + timedelta(hours=i * self.rng.uniform(0.5, 6.0)),
+                    city=customer.city, flagged=True,
                 )
 
     # -- planted scenarios -------------------------------------------------
@@ -620,13 +691,9 @@ class SyntheticDataGenerator:
 
     def _scenario_account_explosion(self, customer: Customer) -> None:
         """A newly opened account receives unusually large volume fast."""
-        # Re-open the customer very recently.
-        recent = self.now - timedelta(days=9)
-        customer.date_opened = recent
         checking = self._primary_account(customer)
-        checking.opened_at = recent
         senders = self._random_other_customers(customer, 10)
-        for i, sender in enumerate(senders):
+        for sender in senders:
             self._add_transaction(
                 sender=self._primary_account(sender),
                 receiver=checking,
@@ -634,8 +701,8 @@ class SyntheticDataGenerator:
                 amount=round(self.rng.uniform(15_000, 40_000), 2),
                 ttype=TransactionType.WIRE,
                 method=PaymentMethod.WIRE,
-                timestamp=recent + timedelta(days=self.rng.uniform(0.2, 8.0)),
-                city=sender.city,
+                timestamp=self.now - timedelta(days=self.rng.uniform(0.2, 5.0)),
+                city=customer.city,
                 flagged=True,
             )
         self.summary.scenarios[customer.scenario_tag] = (
@@ -668,6 +735,14 @@ class SyntheticDataGenerator:
         timestamp = timestamp + timedelta(
             seconds=self.rng.randint(0, 59), microseconds=self.rng.randint(0, 999_999)
         )
+
+        # No transaction may predate the account(s) it involves (item 15).
+        opened = None
+        for acc in (sender, receiver):
+            if acc is not None and acc.opened_at is not None:
+                opened = acc.opened_at if opened is None else max(opened, acc.opened_at)
+        if opened is not None and timestamp < opened:
+            timestamp = opened + timedelta(minutes=self.rng.randint(5, 720))
 
         self._txn_counter += 1
         txn = Transaction(

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
 import { Globe, ShieldAlert } from "lucide-react";
 import { Panel } from "@/components/ui/Card";
@@ -7,6 +8,7 @@ import type { DashboardStats, RiskLevel } from "@/types/api";
 const ORDER: RiskLevel[] = ["critical", "high", "medium", "low"];
 
 export function RiskDistribution({ stats }: { stats: DashboardStats }) {
+  const [active, setActive] = useState<number | null>(null);
   const dist = stats.risk_distribution;
   const total = ORDER.reduce((sum, k) => sum + (dist[k] ?? 0), 0);
   const data = ORDER.map((level) => ({
@@ -34,19 +36,31 @@ export function RiskDistribution({ stats }: { stats: DashboardStats }) {
                 stroke="none"
                 startAngle={90}
                 endAngle={-270}
+                onMouseEnter={(_, i) => setActive(i)}
+                onMouseLeave={() => setActive(null)}
               >
-                {data.map((d) => (
-                  <Cell key={d.level} fill={d.color} />
+                {data.map((d, i) => (
+                  <Cell
+                    key={d.level}
+                    fill={d.color}
+                    fillOpacity={active === null || active === i ? 1 : 0.3}
+                    stroke={active === i ? d.color : "none"}
+                    strokeWidth={active === i ? 2 : 0}
+                    style={{ transition: "fill-opacity 0.15s", cursor: "pointer" }}
+                  />
                 ))}
               </Pie>
             </PieChart>
           </ResponsiveContainer>
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-2xl font-bold tabular-nums text-white">
-              {total}
+            <span
+              className="text-2xl font-bold tabular-nums"
+              style={{ color: active !== null ? data[active].color : "#fff" }}
+            >
+              {active !== null ? data[active].value : total}
             </span>
-            <span className="text-[10px] uppercase tracking-wider text-white/40">
-              Customers
+            <span className="text-[10px] uppercase capitalize tracking-wider text-white/40">
+              {active !== null ? data[active].level : "Customers"}
             </span>
           </div>
         </div>

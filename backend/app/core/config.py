@@ -38,7 +38,7 @@ class Settings(BaseSettings):
 
     # --- Risk / alerting ---
     # Score at/above which an alert is raised (High band and up).
-    alert_threshold: int = Field(default=40)
+    alert_threshold: int = Field(default=60)
 
     # --- Synthetic data ---
     seed: int = Field(default=42)

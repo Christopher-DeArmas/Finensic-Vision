@@ -31,7 +31,7 @@ export function KpiCards({
       label: "Today's Transactions",
       value: liveToday ?? stats.todays_transactions,
       icon: Activity,
-      hint: `${stats.total_transactions.toLocaleString()} total`,
+      hint: `${stats.total_transactions.toLocaleString()} all-time`,
     },
     { label: "Open Cases", value: stats.open_cases, icon: FolderOpen },
     {

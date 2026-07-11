@@ -16,12 +16,12 @@ class RiskLevel(str, Enum):
 
     @classmethod
     def from_score(cls, score: int) -> "RiskLevel":
-        """Map a normalized 0-100 score to a risk band."""
-        if score <= 25:
+        """Map a 0-100 score to a risk band (critical requires 80+)."""
+        if score < 40:
             return cls.LOW
-        if score <= 50:
+        if score < 60:
             return cls.MEDIUM
-        if score <= 75:
+        if score < 80:
             return cls.HIGH
         return cls.CRITICAL
 
