@@ -1,7 +1,7 @@
 """FastAPI application entry point.
 
-Stage 1 provides a health check and app metadata. REST routes, the WebSocket
-stream, and AI endpoints are added in later stages.
+Provides app metadata, a health check, and the full REST API under ``/api``.
+The WebSocket stream and AI endpoints are added in later stages.
 """
 
 from __future__ import annotations
@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import __version__
+from app.api.routes import api_router
 from app.core.config import settings
 
 app = FastAPI(
@@ -42,5 +43,7 @@ def health() -> dict:
     return {"status": "healthy"}
 
 
-# Stage 3+: app.include_router(...) for customers, transactions, alerts, cases.
-# Stage 4:  WebSocket /ws/transactions + streaming lifecycle hooks.
+# REST API (customers, transactions, merchants, alerts, cases, dashboard, ...).
+app.include_router(api_router)
+
+# Stage 4: WebSocket /ws/transactions + streaming lifecycle hooks.

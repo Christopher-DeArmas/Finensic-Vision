@@ -1,18 +1,21 @@
+# Version ranges (not exact pins) so pip installs a prebuilt wheel matching
+# whatever Python you run — avoids source-compiling pydantic-core (needs Rust).
+
 # --- Web framework ---
-fastapi==0.111.0
-uvicorn[standard]==0.30.1
-websockets==12.0
+fastapi>=0.111,<1.0
+uvicorn[standard]>=0.30
+websockets>=12.0
 
 # --- Data / ORM ---
-SQLAlchemy==2.0.30
-pydantic==2.7.4
-pydantic-settings==2.3.4
+SQLAlchemy>=2.0.30,<2.1
+pydantic>=2.7,<3.0
+pydantic-settings>=2.3,<3.0
 
 # --- Synthetic data ---
-Faker==25.9.1
+Faker>=25.0
 
 # --- AI (optional at runtime; template fallback used if unset) ---
-openai==1.35.7
+openai>=1.35
 
 # --- Utilities ---
-python-dotenv==1.0.1
+python-dotenv>=1.0

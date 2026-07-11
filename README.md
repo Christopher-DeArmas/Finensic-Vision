@@ -60,7 +60,7 @@ Suspicious Activity Reports (SARs).
 
 ---
 
-## Quick start (backend — Stage 1)
+## Quick start (backend)
 
 ```bash
 cd backend
@@ -75,12 +75,16 @@ pip install -r requirements.txt
 # 3. Configure environment
 cp .env.example .env             # then edit as needed
 
-# 4. Seed the database with synthetic data
-python -m scripts.seed_db
+# 4. Seed synthetic data AND run the AML engine (one command)
+python -m scripts.reset_demo
 
-# 5. (later stages) Run the API
+# 5. Run the API
 uvicorn app.main:app --reload
 ```
+
+Then open the interactive API docs at **http://localhost:8000/docs** — a full
+Swagger UI where you can call every endpoint (dashboard stats, customers,
+transactions, alerts, and the alert-to-case workflow) against live data.
 
 After seeding you will have a `sentinel.db` SQLite file containing 150
 customers, their accounts, a merchant catalog, thousands of transactions, and
@@ -109,11 +113,11 @@ See [`backend/.env.example`](backend/.env.example). Key values:
 
 ## Build stages
 
-This project is built in the staged order below. **Stages 1–2 are complete.**
+This project is built in the staged order below. **Stages 1–3 are complete.**
 
 1. ✅ **Backend + database** — schema, models, synthetic data generation
 2. ✅ AML rule engine + risk scoring
-3. ⬜ REST APIs
+3. ✅ REST APIs
 4. ⬜ WebSocket transaction stream
 5. ⬜ React dashboard
 6. ⬜ Investigation page (React Flow graph + timeline)
