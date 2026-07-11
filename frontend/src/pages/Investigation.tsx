@@ -1,6 +1,13 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, FolderPlus, Loader2, Network, TriangleAlert } from "lucide-react";
+import {
+  ArrowLeft,
+  FolderPlus,
+  Loader2,
+  Network,
+  Sparkles,
+  TriangleAlert,
+} from "lucide-react";
 import { Panel } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { RiskBadge } from "@/components/ui/RiskBadge";
@@ -11,6 +18,7 @@ import { Timeline } from "@/components/investigation/Timeline";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { useInvestigation } from "@/hooks/useInvestigation";
 import { api } from "@/services/api";
+import type { AISummary } from "@/types/api";
 
 export function Investigation() {
   const { customerId } = useParams();
@@ -99,7 +107,7 @@ export function Investigation() {
         )}
       </div>
 
-      {/* Split layout: customer / graph / AI */}
+      {/* Top row: customer / graph / timeline */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
         <div className="lg:col-span-3">
           <Panel title="Customer">
@@ -108,7 +116,11 @@ export function Investigation() {
         </div>
 
         <div className="lg:col-span-6">
-          <Panel title="Transaction Network" icon={<Network size={16} />} bodyClassName="p-0">
+          <Panel
+            title="Transaction Network"
+            icon={<Network size={16} />}
+            bodyClassName="p-0"
+          >
             <div className="h-[460px] w-full">
               <ErrorBoundary
                 fallback={
@@ -124,15 +136,22 @@ export function Investigation() {
         </div>
 
         <div className="lg:col-span-3">
-          <Panel title="AI Investigation">
-            <RiskPanel customer={customer} />
+          <Panel
+            title="Investigation Timeline"
+            bodyClassName="max-h-[460px] overflow-y-auto"
+          >
+            <Timeline events={timeline} />
           </Panel>
         </div>
       </div>
 
-      {/* Timeline */}
-      <Panel title="Investigation Timeline">
-        <Timeline events={timeline} />
+      {/* AI investigation — full width, horizontal */}
+      <Panel title="AI Investigation" icon={<Sparkles size={16} />}>
+        <RiskPanel
+          customer={customer}
+          caseId={openCase?.id}
+          initialSummary={(openCase?.ai_summary as AISummary | null) ?? null}
+        />
       </Panel>
     </div>
   );

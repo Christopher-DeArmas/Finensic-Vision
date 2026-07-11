@@ -83,12 +83,12 @@ generator that seeds realistic data plus planted laundering scenarios.
 
 ---
 
-## Stage 7 — OpenAI summaries + SAR generation ⬜
+## Stage 7 — OpenAI summaries + SAR generation ✅
 
-- ⬜ `ai/prompt.py`, `ai/investigator.py` (OpenAI + template fallback)
-- ⬜ `ai/sar.py` — structured SAR generation
-- ⬜ Endpoints: `POST /cases/{id}/summary`, `POST /cases/{id}/sar`
-- ⬜ Frontend: AI panel + downloadable SAR
+- ✅ `ai/prompt.py`, `ai/investigator.py` (OpenAI + template fallback)
+- ✅ `ai/sar.py` — structured SAR generation
+- ✅ Endpoints: `POST /cases/{id}/summary`, `POST /cases/{id}/sar`
+- ✅ Frontend: AI panel + downloadable SAR
 
 ---
 

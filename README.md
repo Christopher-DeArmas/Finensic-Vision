@@ -128,7 +128,7 @@ See [`backend/.env.example`](backend/.env.example). Key values:
 
 ## Build stages
 
-This project is built in the staged order below. **Stages 1–6 are complete.**
+This project is built in the staged order below. **Stages 1–7 are complete.**
 
 1. ✅ **Backend + database** — schema, models, synthetic data generation
 2. ✅ AML rule engine + risk scoring
@@ -136,7 +136,7 @@ This project is built in the staged order below. **Stages 1–6 are complete.**
 4. ✅ WebSocket transaction stream
 5. ✅ React dashboard
 6. ✅ Investigation page (React Flow graph + timeline)
-7. ⬜ OpenAI summaries + SAR generation
+7. ✅ OpenAI summaries + SAR generation
 8. ⬜ Polish: animations, loading states, error handling
 
 See [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) for detail, and

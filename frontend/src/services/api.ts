@@ -1,9 +1,11 @@
 import type {
+  AISummary,
   CaseRead,
   CustomerSummary,
   DashboardStats,
   InvestigationBundle,
   Page,
+  SarReportRead,
 } from "@/types/api";
 
 const BASE = import.meta.env.VITE_API_BASE ?? "";
@@ -40,4 +42,9 @@ export const api = {
     ),
   openCase: (alertId: number) =>
     postJSON<CaseRead>("/api/cases", { alert_id: alertId }),
+  generateSummary: (caseId: number) =>
+    postJSON<AISummary>(`/api/cases/${caseId}/summary`, {}),
+  generateSar: (caseId: number) =>
+    postJSON<SarReportRead>(`/api/cases/${caseId}/sar`, {}),
+  sarExportUrl: (caseId: number) => `${BASE}/api/cases/${caseId}/sar/export`,
 };

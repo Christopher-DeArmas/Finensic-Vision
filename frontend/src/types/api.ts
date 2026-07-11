@@ -192,3 +192,29 @@ export interface Page<T> {
   page_size: number;
   pages: number;
 }
+
+// --- AI summary + SAR (Stage 7) ---
+
+export interface AISummary {
+  executive_summary: string;
+  key_findings: string[];
+  likely_behaviors: string[];
+  risk_assessment: string;
+  recommended_next_steps: string[];
+  generated_by: string;
+  model: string | null;
+}
+
+export interface SarReportRead {
+  id: number;
+  case_id: number;
+  reference: string;
+  summary: string;
+  customer_section: string;
+  reason: string;
+  evidence: unknown[];
+  timeline: unknown[];
+  recommendation: string;
+  analyst_notes: string | null;
+  generated_at: string;
+}

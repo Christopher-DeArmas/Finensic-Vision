@@ -17,5 +17,8 @@ Faker>=25.0
 # --- AI (optional at runtime; template fallback used if unset) ---
 openai>=1.35
 
+# --- PDF generation (SAR export) ---
+reportlab>=4.0
+
 # --- Utilities ---
 python-dotenv>=1.0
