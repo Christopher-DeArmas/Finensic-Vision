@@ -12,6 +12,13 @@ class HeatPoint(BaseModel):
     amount: float
     country: str
     is_flagged: bool
+    label: str | None = None
+
+
+class RegionStat(BaseModel):
+    region: str
+    count: int
+    amount: float
 
 
 class DashboardStats(BaseModel):
@@ -26,3 +33,4 @@ class DashboardStats(BaseModel):
     top_risk_customers: list[CustomerSummary]
     recent_alerts: list[AlertRead]
     heatmap: list[HeatPoint]
+    top_regions: list[RegionStat]

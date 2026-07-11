@@ -10,7 +10,7 @@ export function RecentAlerts({ stats }: { stats: DashboardStats }) {
   const alerts = stats.recent_alerts.slice(0, 6);
 
   return (
-    <Panel title="Recent Alerts" icon={<Bell size={16} />} bodyClassName="p-3">
+    <Panel title="Recent Alerts" icon={<Bell size={16} />} bodyClassName="p-2 h-[300px] overflow-y-auto">
       {alerts.length === 0 ? (
         <p className="p-4 text-sm text-white/40">No alerts yet.</p>
       ) : (

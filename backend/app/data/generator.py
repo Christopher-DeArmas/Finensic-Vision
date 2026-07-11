@@ -151,7 +151,8 @@ class SyntheticDataGenerator:
             ScenarioTag.CRYPTO_LAYERING,
             ScenarioTag.ACCOUNT_EXPLOSION,
         ]
-        num_normal = NUM_CUSTOMERS - len(scenario_tags)
+        # Randomize the normal-customer count so each seed differs (item 8).
+        num_normal = self.rng.randint(240, 330)
 
         for _ in range(num_normal):
             self._create_customer(scenario_tag=None)
@@ -304,6 +305,59 @@ class SyntheticDataGenerator:
                     method=PaymentMethod.ACH,
                     timestamp=self.now - timedelta(days=self.rng.randint(0, HISTORY_DAYS)),
                     city=customer.city,
+                )
+
+        self._inject_minor_risk(customer, checking)
+
+    def _inject_minor_risk(self, customer: Customer, checking: Account) -> None:
+        """Give a random subset of ordinary customers small risk signals so the
+        population shows a natural spread of no / small / medium risk instead of
+        everyone sitting at zero (items 6-7)."""
+        roll = self.rng.random()
+        tier = 0
+        if roll < 0.30:
+            tier = 1  # one minor signal -> low band
+        elif roll < 0.38:
+            tier = 2  # two minor signals -> medium band
+        if tier == 0:
+            return
+
+        signals = self.rng.sample(["cash", "geo", "highrisk"], k=tier)
+        base = self.now - timedelta(days=self.rng.randint(1, 60))
+        for sig in signals:
+            if sig == "cash":
+                self._add_transaction(
+                    receiver=checking, sender=None, merchant=None,
+                    amount=round(self.rng.uniform(10_500, 13_500), 2),
+                    ttype=TransactionType.DEPOSIT, method=PaymentMethod.CASH,
+                    timestamp=base - timedelta(hours=self.rng.randint(1, 200)),
+                    city=customer.city,
+                )
+            elif sig == "geo":
+                a = base - timedelta(days=self.rng.randint(1, 20))
+                self._add_transaction(
+                    sender=checking, receiver=None,
+                    merchant=self.rng.choice(self._merchants_in("retail")),
+                    amount=round(self.rng.uniform(60, 400), 2),
+                    ttype=TransactionType.PAYMENT, method=PaymentMethod.CARD,
+                    timestamp=a, city="Miami",
+                )
+                self._add_transaction(
+                    sender=checking, receiver=None,
+                    merchant=self.rng.choice(self._merchants_in("electronics")),
+                    amount=round(self.rng.uniform(60, 400), 2),
+                    ttype=TransactionType.PAYMENT, method=PaymentMethod.CARD,
+                    timestamp=a + timedelta(minutes=self.rng.randint(12, 40)),
+                    city="Tokyo",
+                )
+            elif sig == "highrisk":
+                self._add_transaction(
+                    sender=checking, receiver=None,
+                    merchant=self.rng.choice(self._merchants_in("retail")),
+                    amount=round(self.rng.uniform(80, 600), 2),
+                    ttype=TransactionType.PAYMENT, method=PaymentMethod.CARD,
+                    timestamp=base - timedelta(hours=self.rng.randint(1, 300)),
+                    city=self.rng.choice(ref.HIGH_RISK_CITIES),
                 )
 
     # -- planted scenarios -------------------------------------------------
@@ -609,6 +663,11 @@ class SyntheticDataGenerator:
         # Small jitter so points aren't perfectly stacked on the heatmap.
         lat += self.rng.uniform(-0.05, 0.05)
         lon += self.rng.uniform(-0.05, 0.05)
+
+        # Second-level jitter so timestamps aren't aligned to whole minutes.
+        timestamp = timestamp + timedelta(
+            seconds=self.rng.randint(0, 59), microseconds=self.rng.randint(0, 999_999)
+        )
 
         self._txn_counter += 1
         txn = Transaction(

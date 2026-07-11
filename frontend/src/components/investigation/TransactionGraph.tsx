@@ -17,6 +17,7 @@ interface Pt {
 export function TransactionGraph({ graph }: { graph: GraphData }) {
   const [view, setView] = useState({ k: 1, tx: 0, ty: 0 });
   const drag = useRef<{ x: number; y: number; tx: number; ty: number } | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
 
   const { positions, radius } = useMemo(() => {
     const others = graph.nodes.filter((n) => !n.is_subject);
@@ -49,10 +50,12 @@ export function TransactionGraph({ graph }: { graph: GraphData }) {
   };
   const onMove = (e: React.MouseEvent) => {
     if (!drag.current) return;
+    const w = svgRef.current?.clientWidth || 600;
+    const f = ((2 * vb) / w) * 1.15; // px -> viewBox units, slightly boosted
     setView((v) => ({
       ...v,
-      tx: drag.current!.tx + (e.clientX - drag.current!.x),
-      ty: drag.current!.ty + (e.clientY - drag.current!.y),
+      tx: drag.current!.tx + (e.clientX - drag.current!.x) * f,
+      ty: drag.current!.ty + (e.clientY - drag.current!.y) * f,
     }));
   };
   const onUp = () => (drag.current = null);
@@ -63,6 +66,7 @@ export function TransactionGraph({ graph }: { graph: GraphData }) {
   return (
     <div className="relative h-full w-full overflow-hidden">
       <svg
+        ref={svgRef}
         className="h-full w-full cursor-grab active:cursor-grabbing"
         viewBox={`${-vb} ${-vb} ${2 * vb} ${2 * vb}`}
         preserveAspectRatio="xMidYMid meet"

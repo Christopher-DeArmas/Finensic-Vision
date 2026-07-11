@@ -9,6 +9,13 @@ export interface HeatPoint {
   amount: number;
   country: string;
   is_flagged: boolean;
+  label?: string | null;
+}
+
+export interface RegionStat {
+  region: string;
+  count: number;
+  amount: number;
 }
 
 export interface CustomerSummary {
@@ -50,6 +57,7 @@ export interface DashboardStats {
   top_risk_customers: CustomerSummary[];
   recent_alerts: AlertRead[];
   heatmap: HeatPoint[];
+  top_regions: RegionStat[];
 }
 
 // --- Live WebSocket events ---

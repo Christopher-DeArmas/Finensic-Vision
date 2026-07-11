@@ -8,7 +8,25 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models import Account, Alert, Case, Customer, Transaction
-from app.schemas.dashboard import HeatPoint
+from app.schemas.dashboard import HeatPoint, RegionStat
+
+# Group countries into broad world regions for the "risky regions" chart.
+COUNTRY_REGION: dict[str, str] = {
+    "United States": "North America",
+    "Panama": "North America",
+    "Cayman Islands": "North America",
+    "United Kingdom": "Europe",
+    "Germany": "Europe",
+    "Switzerland": "Europe",
+    "Malta": "Europe",
+    "Cyprus": "Europe",
+    "Russia": "Europe",
+    "Singapore": "Asia",
+    "Hong Kong": "Asia",
+    "Japan": "Asia",
+    "United Arab Emirates": "Middle East",
+    "Nigeria": "Africa",
+}
 
 
 def counts(db: Session) -> dict:
@@ -50,21 +68,61 @@ def risk_distribution(db: Session) -> dict[str, int]:
     return dist
 
 
+def top_regions(db: Session) -> list[RegionStat]:
+    rows = (
+        db.query(
+            Transaction.country,
+            func.count(Transaction.id),
+            func.coalesce(func.sum(Transaction.amount), 0.0),
+        )
+        .filter(Transaction.is_flagged.is_(True))
+        .group_by(Transaction.country)
+        .all()
+    )
+    agg: dict[str, list[float]] = {}
+    for country, cnt, amt in rows:
+        region = COUNTRY_REGION.get(country, "Other")
+        cur = agg.setdefault(region, [0, 0.0])
+        cur[0] += cnt
+        cur[1] += float(amt or 0)
+    return [
+        RegionStat(region=r, count=int(v[0]), amount=round(v[1], 2))
+        for r, v in sorted(agg.items(), key=lambda kv: kv[1][0], reverse=True)
+    ]
+
+
 def heatmap(db: Session, limit: int = 400) -> list[HeatPoint]:
-    # Prioritize flagged transactions, then fill with recent ones.
     rows = (
         db.query(Transaction)
         .order_by(Transaction.is_flagged.desc(), Transaction.timestamp.desc())
         .limit(limit)
         .all()
     )
-    return [
-        HeatPoint(
-            latitude=t.latitude,
-            longitude=t.longitude,
-            amount=t.amount,
-            country=t.country,
-            is_flagged=t.is_flagged,
+    # Resolve the associated customer name for hover labels.
+    acc_ids = set()
+    for t in rows:
+        acc_ids.add(t.sender_account_id or t.receiver_account_id)
+    acc_ids.discard(None)
+    names: dict[int, str] = {}
+    if acc_ids:
+        for aid, name in (
+            db.query(Account.id, Customer.full_name)
+            .join(Customer, Account.customer_id == Customer.id)
+            .filter(Account.id.in_(acc_ids))
+        ):
+            names[aid] = name
+
+    points = []
+    for t in rows:
+        aid = t.sender_account_id or t.receiver_account_id
+        points.append(
+            HeatPoint(
+                latitude=t.latitude,
+                longitude=t.longitude,
+                amount=t.amount,
+                country=t.country,
+                is_flagged=t.is_flagged,
+                label=names.get(aid),
+            )
         )
-        for t in rows
-    ]
+    return points

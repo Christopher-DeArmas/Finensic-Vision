@@ -27,4 +27,5 @@ def dashboard_stats(db: Session = Depends(get_db)):
         top_risk_customers=customers_repo.top_risk(db, limit=8),
         recent_alerts=alerts_repo.recent(db, limit=8),
         heatmap=repo.heatmap(db),
+        top_regions=repo.top_regions(db),
     )

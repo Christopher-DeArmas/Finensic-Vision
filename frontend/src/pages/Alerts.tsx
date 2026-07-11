@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Bell, ChevronRight } from "lucide-react";
+import { Bell } from "lucide-react";
 import { motion } from "framer-motion";
 import { Panel } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -39,6 +39,18 @@ const RULE_OPTS = [
   { value: "AML-09", label: "AML-09 Large Cash" },
   { value: "AML-10", label: "AML-10 Account Explosion" },
 ];
+const ROW_STATUS = [
+  { value: "open", label: "Open" },
+  { value: "in_review", label: "In review" },
+  { value: "escalated", label: "Escalated" },
+  { value: "dismissed", label: "Dismissed" },
+];
+const STATUS_COLOR: Record<string, string> = {
+  open: "#eab308",
+  in_review: "#4d9bff",
+  escalated: "#f97316",
+  dismissed: "#8a8a92",
+};
 
 export function Alerts() {
   const [severity, setSeverity] = useState("");
@@ -61,6 +73,15 @@ export function Alerts() {
       active = false;
     };
   }, [severity, status, rule, page]);
+
+  const updateStatus = (id: number, next: string) => {
+    setData((d) =>
+      d
+        ? { ...d, items: d.items.map((a) => (a.id === id ? { ...a, status: next } : a)) }
+        : d,
+    );
+    api.updateAlert(id, next).catch(() => {});
+  };
 
   return (
     <motion.div
@@ -93,10 +114,13 @@ export function Alerts() {
           <>
             <ul className="divide-y divide-white/5">
               {data.items.map((a) => (
-                <li key={a.id}>
+                <li
+                  key={a.id}
+                  className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-white/5"
+                >
                   <Link
                     to={`/investigations/${a.customer_id}`}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-white/5"
+                    className="flex min-w-0 flex-1 items-center gap-3"
                   >
                     <span
                       className="h-2.5 w-2.5 shrink-0 rounded-full"
@@ -120,14 +144,28 @@ export function Alerts() {
                         </span>
                       </div>
                     </div>
-                    <Badge className="hidden border-white/10 bg-white/5 text-white/50 capitalize md:inline-flex">
-                      {a.status.replace(/_/g, " ")}
-                    </Badge>
-                    <span className="w-8 text-right text-sm font-bold tabular-nums text-white/80">
+                    <span className="w-8 shrink-0 text-right text-sm font-bold tabular-nums text-white/80">
                       {a.score}
                     </span>
-                    <ChevronRight size={16} className="text-white/25" />
                   </Link>
+
+                  {/* Status control (item 14) — outside the link so it doesn't navigate. */}
+                  <select
+                    value={a.status}
+                    onChange={(e) => updateStatus(a.id, e.target.value)}
+                    className="rounded-lg border px-2 py-1 text-xs font-medium capitalize outline-none"
+                    style={{
+                      borderColor: `${STATUS_COLOR[a.status] ?? "#8a8a92"}55`,
+                      backgroundColor: `${STATUS_COLOR[a.status] ?? "#8a8a92"}1a`,
+                      color: STATUS_COLOR[a.status] ?? "#8a8a92",
+                    }}
+                  >
+                    {ROW_STATUS.map((o) => (
+                      <option key={o.value} value={o.value} className="bg-ink-850 text-white">
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
                 </li>
               ))}
             </ul>

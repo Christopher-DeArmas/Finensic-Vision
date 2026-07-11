@@ -1,5 +1,5 @@
 import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
-import { ShieldAlert } from "lucide-react";
+import { Globe, ShieldAlert } from "lucide-react";
 import { Panel } from "@/components/ui/Card";
 import { RISK_COLORS } from "@/components/ui/RiskBadge";
 import type { DashboardStats, RiskLevel } from "@/types/api";
@@ -15,18 +15,21 @@ export function RiskDistribution({ stats }: { stats: DashboardStats }) {
     color: RISK_COLORS[level],
   })).filter((d) => d.value > 0);
 
+  const regions = stats.top_regions ?? [];
+  const maxRegion = Math.max(1, ...regions.map((r) => r.count));
+
   return (
     <Panel title="Risk Distribution" icon={<ShieldAlert size={16} />}>
       <div className="flex items-center gap-5">
-        <div className="relative h-40 w-40 shrink-0">
+        <div className="relative h-36 w-36 shrink-0">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
                 data={data}
                 dataKey="value"
                 nameKey="level"
-                innerRadius={52}
-                outerRadius={70}
+                innerRadius={48}
+                outerRadius={64}
                 paddingAngle={2}
                 stroke="none"
                 startAngle={90}
@@ -50,10 +53,7 @@ export function RiskDistribution({ stats }: { stats: DashboardStats }) {
 
         <ul className="flex-1 space-y-2">
           {ORDER.map((level) => (
-            <li
-              key={level}
-              className="flex items-center justify-between text-sm"
-            >
+            <li key={level} className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2">
                 <span
                   className="h-2.5 w-2.5 rounded-sm"
@@ -67,6 +67,34 @@ export function RiskDistribution({ stats }: { stats: DashboardStats }) {
             </li>
           ))}
         </ul>
+      </div>
+
+      <div className="mt-5 border-t border-white/5 pt-4">
+        <div className="stat-label mb-3 flex items-center gap-1.5">
+          <Globe size={12} /> Common Risky Regions
+        </div>
+        {regions.length === 0 ? (
+          <p className="text-sm text-white/40">No flagged activity yet.</p>
+        ) : (
+          <ul className="space-y-2.5">
+            {regions.map((r) => (
+              <li key={r.region}>
+                <div className="mb-1 flex items-center justify-between text-xs">
+                  <span className="text-white/70">{r.region}</span>
+                  <span className="tabular-nums text-white/45">
+                    {r.count} flagged
+                  </span>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-white/5">
+                  <div
+                    className="h-full rounded-full bg-brand-500"
+                    style={{ width: `${(r.count / maxRegion) * 100}%` }}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </Panel>
   );

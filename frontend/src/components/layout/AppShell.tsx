@@ -37,7 +37,7 @@ export function AppShell() {
     <div className="flex min-h-screen">
       {/* Sidebar */}
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-white/5 bg-ink-900/60 px-4 py-6 backdrop-blur-sm md:flex">
-        <div className="flex items-center gap-2.5 px-1">
+        <NavLink to="/" className="flex items-center gap-2.5 px-1">
           <div className="relative">
             <div className="absolute inset-0 rounded-xl bg-brand-500/25 blur-md" />
             <img
@@ -51,10 +51,10 @@ export function AppShell() {
               Finensic Vision
             </div>
             <div className="text-[10px] uppercase tracking-[0.18em] text-brand-400">
-              AML Command
+              AML Agent
             </div>
           </div>
-        </div>
+        </NavLink>
 
         <nav className="mt-8 flex flex-col gap-1">
           {NAV.map(({ label, icon: Icon, to, enabled }) =>

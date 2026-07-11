@@ -5,10 +5,10 @@ import { RiskBadge, RISK_COLORS } from "@/components/ui/RiskBadge";
 import type { DashboardStats } from "@/types/api";
 
 export function TopRiskCustomers({ stats }: { stats: DashboardStats }) {
-  const rows = stats.top_risk_customers.slice(0, 6);
+  const rows = stats.top_risk_customers.slice(0, 5);
 
   return (
-    <Panel title="Top Risk Customers" icon={<Flame size={16} />} bodyClassName="p-3">
+    <Panel title="Top Risk Customers" icon={<Flame size={16} />} bodyClassName="p-2 h-[300px] overflow-y-auto">
       {rows.length === 0 ? (
         <p className="p-4 text-sm text-white/40">No elevated-risk customers.</p>
       ) : (

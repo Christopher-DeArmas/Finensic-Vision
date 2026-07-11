@@ -9,7 +9,8 @@ Responsibilities:
 
 from __future__ import annotations
 
-from datetime import datetime
+import random
+from datetime import datetime, timedelta
 
 from sqlalchemy.orm import Session
 
@@ -62,7 +63,12 @@ class ScoringService:
             distribution[result.risk_level.value] += 1
             scored.append((customer, result))
             if raise_alerts and result.score >= settings.alert_threshold and result.results:
-                AlertService.create_from_score(self.db, customer, result)
+                alert = AlertService.create_from_score(self.db, customer, result)
+                # Spread historical alerts over the past ~6 days so the feed
+                # shows realistic, staggered timestamps (item 15).
+                alert.created_at = self.now - timedelta(
+                    minutes=random.randint(2, 6 * 24 * 60)
+                )
                 alerts_created += 1
 
         self.db.commit()

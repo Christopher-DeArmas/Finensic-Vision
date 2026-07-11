@@ -18,12 +18,18 @@ interface Kpi {
   hint?: string;
 }
 
-export function KpiCards({ stats }: { stats: DashboardStats }) {
+export function KpiCards({
+  stats,
+  liveToday,
+}: {
+  stats: DashboardStats;
+  liveToday?: number;
+}) {
   const items: Kpi[] = [
     { label: "Total Customers", value: stats.total_customers, icon: Users },
     {
       label: "Today's Transactions",
-      value: stats.todays_transactions,
+      value: liveToday ?? stats.todays_transactions,
       icon: Activity,
       hint: `${stats.total_transactions.toLocaleString()} total`,
     },

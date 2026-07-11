@@ -44,6 +44,18 @@ async function postJSON<T>(path: string, body: unknown): Promise<T> {
   return (await res.json()) as T;
 }
 
+async function patchJSON<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    throw new Error(`Request failed: ${res.status} ${res.statusText}`);
+  }
+  return (await res.json()) as T;
+}
+
 export interface CustomerQuery {
   page?: number;
   page_size?: number;
@@ -71,7 +83,10 @@ export const api = {
     getJSON<Page<CustomerSummary>>(
       "/api/customers?high_risk_only=true&page_size=100",
     ),
-  alerts: (p: AlertQuery = {}) => getJSON<Page<AlertRead>>(`/api/alerts${qs(p as Record<string, QueryValue>)}`),
+  alerts: (p: AlertQuery = {}) =>
+    getJSON<Page<AlertRead>>(`/api/alerts${qs(p as Record<string, QueryValue>)}`),
+  updateAlert: (id: number, status: string) =>
+    patchJSON<AlertRead>(`/api/alerts/${id}`, { status }),
   search: (q: string) => getJSON<SearchResults>(`/api/search${qs({ q })}`),
   openCase: (alertId: number) =>
     postJSON<CaseRead>("/api/cases", { alert_id: alertId }),

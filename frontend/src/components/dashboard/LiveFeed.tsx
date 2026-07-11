@@ -11,7 +11,7 @@ import {
 import { Panel } from "@/components/ui/Card";
 import { cn } from "@/lib/cn";
 import { formatCurrency, formatTime } from "@/lib/format";
-import { useLiveFeed } from "@/hooks/useLiveFeed";
+import type { LiveFeedState } from "@/hooks/useLiveFeed";
 import type { LiveTransaction } from "@/types/api";
 
 function directionIcon(type: string): LucideIcon {
@@ -41,8 +41,8 @@ function StatusPill({ connected }: { connected: boolean }) {
   );
 }
 
-export function LiveFeed() {
-  const { transactions, connected, flaggedSeen } = useLiveFeed();
+export function LiveFeed({ feed }: { feed: LiveFeedState }) {
+  const { transactions, connected, flaggedSeen } = feed;
   const scrollRef = useRef<HTMLDivElement>(null);
   // "stuck" = pinned to the top and showing the live stream. When the user
   // scrolls down to read, we freeze the list to a snapshot so items don't jump.
