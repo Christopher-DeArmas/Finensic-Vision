@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { RISK_COLORS } from "@/components/ui/RiskBadge";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, parseApiDate } from "@/lib/format";
 import type { Severity, TimelineEvent } from "@/types/api";
 
 const ICONS: Record<TimelineEvent["type"], LucideIcon> = {
@@ -24,7 +24,7 @@ function color(e: TimelineEvent): string {
 }
 
 function stamp(iso: string): string {
-  return new Date(iso).toLocaleString("en-US", {
+  return parseApiDate(iso).toLocaleString("en-US", {
     month: "short",
     day: "numeric",
     hour: "2-digit",

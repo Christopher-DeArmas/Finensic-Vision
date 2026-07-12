@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/Badge";
 import { RiskBadge } from "@/components/ui/RiskBadge";
 import { RowsSkeleton } from "@/components/ui/Skeleton";
 import { api } from "@/services/api";
+import { parseApiDate } from "@/lib/format";
 import type { CaseRead, Severity } from "@/types/api";
 
 const OPEN = ["open", "investigating"];
@@ -14,7 +15,7 @@ const CLOSED = ["closed"];
 
 function fmtDate(iso: string | null): string {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-US", {
+  return parseApiDate(iso).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",

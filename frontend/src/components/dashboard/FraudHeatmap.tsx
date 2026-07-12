@@ -9,7 +9,6 @@ import {
 import { Globe2, Minus, Plus, RotateCcw } from "lucide-react";
 import worldTopo from "world-atlas/countries-110m.json";
 import { Panel } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
 import { formatCurrency } from "@/lib/format";
 import { useLiveData, type HeatPt } from "@/contexts/LiveDataProvider";
 
@@ -56,21 +55,7 @@ export function FraudHeatmap() {
     "grid h-7 w-7 place-items-center rounded-md border border-white/10 bg-ink-900/80 text-white/70 backdrop-blur transition-colors hover:border-gold-500/40 hover:text-gold-300";
 
   return (
-    <Panel
-      title="Fraud Heatmap"
-      icon={<Globe2 size={16} />}
-      bodyClassName="p-0"
-      action={
-        <div className="flex items-center gap-2">
-          <Badge className="border-gold-500/25 bg-gold-500/10 text-gold-300">
-            {normal.length} normal
-          </Badge>
-          <Badge className="border-risk-critical/30 bg-risk-critical/10 text-risk-critical">
-            {flagged.length} flagged
-          </Badge>
-        </div>
-      }
-    >
+    <Panel title="Fraud Heatmap" icon={<Globe2 size={16} />} bodyClassName="p-0">
       <div ref={wrapRef} className="relative">
         <div className="h-[360px] w-full overflow-hidden">
           <ComposableMap

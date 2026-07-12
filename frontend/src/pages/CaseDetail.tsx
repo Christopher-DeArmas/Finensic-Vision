@@ -13,11 +13,12 @@ import { Panel } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { RiskBadge } from "@/components/ui/RiskBadge";
 import { api } from "@/services/api";
+import { parseApiDate } from "@/lib/format";
 import type { AISummary, CaseRead, Severity } from "@/types/api";
 
 function fmt(iso: string | null): string {
   if (!iso) return "—";
-  return new Date(iso).toLocaleString("en-US", {
+  return parseApiDate(iso).toLocaleString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
