@@ -1,5 +1,7 @@
 # Finensic Vision — Sentinel AML
 
+**Authors:** Christopher De Armas · Justin Qiu
+
 **AI-Powered Anti-Money-Laundering Investigation Platform**
 
 Finensic Vision is a demonstration prototype that simulates the software an AML
